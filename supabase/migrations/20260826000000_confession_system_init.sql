@@ -888,10 +888,20 @@ BEGIN
         email,
         encrypted_password,
         email_confirmed_at,
+        recovery_sent_at,
+        last_sign_in_at,
         raw_app_meta_data,
         raw_user_meta_data,
         created_at,
-        updated_at
+        updated_at,
+        confirmation_token,
+        email_change,
+        email_change_token_new,
+        recovery_token,
+        is_super_admin,
+        is_sso_user,
+        is_anonymous,
+        email_change_confirm_status
     ) VALUES (
         '00000000-0000-0000-0000-000000000000',
         v_user_id,
@@ -900,10 +910,20 @@ BEGIN
         lower(trim(p_email)),
         crypt(p_password, gen_salt('bf')),
         NOW(),
-        '{"provider":"email","providers":["email"]}',
+        NOW(),
+        NOW(),
+        '{"provider":"email","providers":["email"]}'::jsonb,
         jsonb_build_object('name', p_name, 'phone', p_phone, 'role', p_role),
         NOW(),
-        NOW()
+        NOW(),
+        '',
+        '',
+        '',
+        '',
+        false,
+        false,
+        false,
+        0
     );
 
     -- 2. Insert into auth.identities
@@ -917,11 +937,11 @@ BEGIN
         created_at,
         updated_at
     ) VALUES (
+        v_user_id::text,
         v_user_id,
-        v_user_id,
-        jsonb_build_object('sub', v_user_id, 'email', lower(trim(p_email))),
+        jsonb_build_object('sub', v_user_id::text, 'email', lower(trim(p_email))),
         'email',
-        lower(trim(p_email)),
+        v_user_id::text,
         NOW(),
         NOW(),
         NOW()
