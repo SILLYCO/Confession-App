@@ -88,31 +88,25 @@ pnpm dev
 ```
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### 3. Interactive Role Switcher
-Use the top interactive switcher bar to switch instantly between:
-- **Fr. Athanasius Hanna** (`priest`) - 15 min confessions
-- **Fr. Menas Shenouda** (`priest`) - 20 min confessions
-- **Sister Phoebe Mikhail** (`secretary`) - Church Operations
-- **Peter Mark** (`general`) - Church Member (has active booking demo)
-- **Mary George** (`general`) - Church Member
-- **David Samuel** (`general`) - Church Member
+### 3. Production Authentication & User Registration
+- **Sign In (`تسجيل الدخول`)**: Users sign in with their registered email and password.
+- **Member Registration (`إنشاء حساب جديد`)**: Congregation members can register an account with Full Name, Email, Phone, and Password. New accounts are automatically assigned the `general` role.
+- **Role Elevation**: Super Administrator promotes users to `priest`, `secretary`, or `admin` via the Super Admin Control Center.
+- **Persistent Offline Fallback**: In the absence of remote Supabase credentials, the application runs persistently with real registration and persistent local database storage.
 
 ### 4. Supabase Setup (Production Deployment)
-1. Link your Supabase project:
-   ```bash
-   npx supabase db push
-   ```
-2. Apply seed data:
-   ```bash
-   npx supabase db execute -f supabase/seed.sql
-   ```
-3. Set `.env` environment variables:
+1. **Create Supabase Project**:
+   Create a new project at [supabase.com](https://supabase.com).
+2. **Execute Database Migration & Seed**:
+   Run [`supabase/migrations/20260826000000_confession_system_init.sql`](file:///home/kirolos-haliem/Desktop/Projects/Confession%20App/supabase/migrations/20260826000000_confession_system_init.sql) in the Supabase SQL Editor, followed by [`supabase/seed.sql`](file:///home/kirolos-haliem/Desktop/Projects/Confession%20App/supabase/seed.sql).
+3. **Set Environment Variables in `.env`**:
    ```env
    VITE_SUPABASE_URL=https://your-project.supabase.co
-   VITE_SUPABASE_ANON_KEY=your-anon-key
+   VITE_SUPABASE_ANON_KEY=your-anon-key-here
    RESEND_API_KEY=re_your_resend_key
+   FROM_EMAIL=confessions@yourchurch.org
    ```
-4. Deploy Edge Functions:
+4. **Deploy Edge Functions (Optional for Email & Daily Horizon Cron)**:
    ```bash
    npx supabase functions deploy send-email-notification
    npx supabase functions deploy cron-slot-horizon

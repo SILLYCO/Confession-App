@@ -1,69 +1,142 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { useAppStore } from '../../lib/store';
-import { User } from '../../types/database';
 import { LanguageSwitcher } from '../layout/LanguageSwitcher';
-import { Badge } from '../common/Badge';
 import { 
   Church, 
-  Sparkles, 
   LogIn, 
+  UserPlus, 
   Mail, 
   Lock, 
-  ArrowRight, 
-  Crown
+  Eye, 
+  EyeOff, 
+  Phone, 
+  User, 
+  CheckCircle2, 
+  AlertCircle,
+  KeyRound,
+  ShieldCheck
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const { t, language } = useTranslation();
-  const { allUsers, login, loginWithEmail } = useAppStore();
+  const { signIn, signUp, resetPassword } = useAppStore();
 
-  const [emailInput, setEmailInput] = useState('');
-  const [passwordInput, setPasswordInput] = useState('');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  
+  // Sign In Form State
+  const [signInEmail, setSignInEmail] = useState('');
+  const [signInPassword, setSignInPassword] = useState('');
+  const [showSignInPassword, setShowSignInPassword] = useState(false);
+
+  // Sign Up Form State
+  const [signUpName, setSignUpName] = useState('');
+  const [signUpEmail, setSignUpEmail] = useState('');
+  const [signUpPhone, setSignUpPhone] = useState('');
+  const [signUpPassword, setSignUpPassword] = useState('');
+  const [signUpConfirmPassword, setSignUpConfirmPassword] = useState('');
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+
+  // Status & Feedback State
+  const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
 
-  const admins = allUsers.filter(u => u.role === 'admin');
-  const priests = allUsers.filter(u => u.role === 'priest');
-  const secretaries = allUsers.filter(u => u.role === 'secretary');
-  const members = allUsers.filter(u => u.role === 'general');
-
-  const handleCustomLogin = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    setSuccessMsg(null);
 
-    if (!emailInput.trim()) {
-      setErrorMsg(language === 'ar' ? 'يرجى إدخال البريد الإلكتروني' : 'Please enter an email address');
+    if (!signInEmail.trim()) {
+      setErrorMsg(language === 'ar' ? 'يرجى إدخال البريد الإلكتروني' : 'Please enter your email address');
+      return;
+    }
+    if (!signInPassword) {
+      setErrorMsg(language === 'ar' ? 'يرجى إدخال كلمة المرور' : 'Please enter your password');
       return;
     }
 
-    const success = loginWithEmail(emailInput);
-    if (!success) {
-      // Auto-create or fallback login for demo
-      const user: User = {
-        id: 'usr_' + Math.random().toString(36).substring(2, 9),
-        name: emailInput.split('@')[0],
-        email: emailInput.trim(),
-        role: 'general',
-        title_en: emailInput.split('@')[0],
-        title_ar: emailInput.split('@')[0],
-        avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100'
-      };
-      login(user);
+    setIsLoading(true);
+    const result = await signIn(signInEmail, signInPassword);
+    setIsLoading(false);
+
+    if (!result.success) {
+      setErrorMsg(
+        result.error === 'INVALID_CREDENTIALS'
+          ? t.auth.invalidCredentials
+          : result.error || t.auth.invalidCredentials
+      );
     }
   };
 
-  const handleQuickLogin = (user: User) => {
-    login(user);
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    if (!signUpName.trim()) {
+      setErrorMsg(t.auth.nameRequired);
+      return;
+    }
+    if (!signUpEmail.trim()) {
+      setErrorMsg(language === 'ar' ? 'يرجى إدخال البريد الإلكتروني' : 'Please enter your email address');
+      return;
+    }
+    if (!signUpPhone.trim()) {
+      setErrorMsg(t.auth.phoneRequired);
+      return;
+    }
+    if (signUpPassword.length < 6) {
+      setErrorMsg(t.auth.passwordMinLength);
+      return;
+    }
+    if (signUpPassword !== signUpConfirmPassword) {
+      setErrorMsg(t.auth.passwordsDoNotMatch);
+      return;
+    }
+
+    setIsLoading(true);
+    const result = await signUp({
+      name: signUpName.trim(),
+      email: signUpEmail.trim(),
+      phone: signUpPhone.trim(),
+      password: signUpPassword,
+      title_ar: signUpName.trim(),
+      title_en: signUpName.trim(),
+    });
+    setIsLoading(false);
+
+    if (result.success) {
+      setSuccessMsg(t.auth.signUpSuccess);
+    } else {
+      setErrorMsg(
+        result.error === 'EMAIL_EXISTS'
+          ? (language === 'ar' ? 'يوجد حساب مسجل بالفعل بهذا البريد الإلكتروني.' : 'An account with this email already exists.')
+          : result.error || 'Failed to create account'
+      );
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) return;
+    setIsLoading(true);
+    await resetPassword(forgotEmail.trim());
+    setIsLoading(false);
+    setForgotSent(true);
   };
 
   return (
     <div className="min-h-screen bg-stone-100 flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8">
       
       {/* Top language toggle & branding bar */}
-      <div className="max-w-4xl w-full mx-auto flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-navy-950 flex items-center justify-center text-gold-400 shadow">
-            <Church className="w-5 h-5 text-gold-400" />
+      <div className="max-w-md w-full mx-auto flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2.5">
+          <div className="w-10 h-10 rounded-2xl bg-navy-950 flex items-center justify-center text-gold-400 shadow-md">
+            <Church className="w-6 h-6 text-gold-400" />
           </div>
           <div>
             <h1 className="text-sm font-bold text-navy-950 font-serif leading-tight">
@@ -78,29 +151,77 @@ export const LoginPage: React.FC = () => {
         <LanguageSwitcher />
       </div>
 
-      <div className="max-w-4xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* Main Authentication Card */}
+      <div className="max-w-md w-full mx-auto bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-2xl space-y-6">
         
-        {/* Left Column: Email/Password Sign In Form */}
-        <div className="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-xl space-y-6">
-          <div className="text-center space-y-2">
-            <div className="inline-flex p-3 rounded-2xl bg-gold-50 text-church-700 border border-gold-300 shadow-inner">
-              <Church className="w-8 h-8 text-gold-600" />
-            </div>
-            <h2 className="text-xl font-bold font-serif text-navy-950">
-              {t.auth.signInTitle}
-            </h2>
-            <p className="text-xs text-stone-500 leading-relaxed">
-              {t.auth.signInSubtitle}
-            </p>
+        {/* Header Branding */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-navy-950 to-navy-900 text-gold-400 shadow-inner">
+            <Church className="w-8 h-8 text-gold-400" />
           </div>
+          <h2 className="text-xl font-bold font-serif text-navy-950">
+            {authMode === 'signin' ? t.auth.signInTitle : t.auth.signUpTitle}
+          </h2>
+          <p className="text-xs text-stone-500 leading-relaxed max-w-xs mx-auto">
+            {authMode === 'signin' ? t.auth.signInSubtitle : t.auth.signUpSubtitle}
+          </p>
+        </div>
 
-          {errorMsg && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
-              {errorMsg}
-            </div>
-          )}
+        {/* Tab Switcher */}
+        <div className="grid grid-cols-2 p-1 bg-stone-100 rounded-2xl text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => {
+              setAuthMode('signin');
+              setErrorMsg(null);
+              setSuccessMsg(null);
+            }}
+            className={`py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 ${
+              authMode === 'signin'
+                ? 'bg-navy-950 text-gold-400 shadow-sm'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            <LogIn className="w-4 h-4" />
+            <span>{t.auth.signInButton}</span>
+          </button>
 
-          <form onSubmit={handleCustomLogin} className="space-y-4">
+          <button
+            type="button"
+            onClick={() => {
+              setAuthMode('signup');
+              setErrorMsg(null);
+              setSuccessMsg(null);
+            }}
+            className={`py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 ${
+              authMode === 'signup'
+                ? 'bg-navy-950 text-gold-400 shadow-sm'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>{t.auth.signUpButton}</span>
+          </button>
+        </div>
+
+        {/* Error / Success Feedback Notices */}
+        {errorMsg && (
+          <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {successMsg && (
+          <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+            <span>{successMsg}</span>
+          </div>
+        )}
+
+        {/* SIGN IN FORM */}
+        {authMode === 'signin' && (
+          <form onSubmit={handleSignIn} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-stone-700 mb-1">
                 {t.auth.emailLabel}
@@ -109,9 +230,113 @@ export const LoginPage: React.FC = () => {
                 <Mail className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
                 <input
                   type="email"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="e.g. admin@church.org"
+                  required
+                  value={signInEmail}
+                  onChange={(e) => setSignInEmail(e.target.value)}
+                  placeholder="your.email@example.com"
+                  className="w-full text-xs ps-10 pe-4 py-2.5 rounded-xl border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-gold-500 focus:bg-white transition"
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold text-stone-700">
+                  {t.auth.passwordLabel}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsForgotModalOpen(true);
+                    setForgotSent(false);
+                    setForgotEmail(signInEmail);
+                  }}
+                  className="text-[11px] text-church-700 hover:text-navy-950 font-semibold hover:underline"
+                >
+                  {t.auth.forgotPassword}
+                </button>
+              </div>
+
+              <div className="relative">
+                <Lock className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
+                <input
+                  type={showSignInPassword ? 'text' : 'password'}
+                  required
+                  value={signInPassword}
+                  onChange={(e) => setSignInPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full text-xs ps-10 pe-10 py-2.5 rounded-xl border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-gold-500 focus:bg-white transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSignInPassword(!showSignInPassword)}
+                  className="absolute end-3 top-2.5 p-0.5 text-stone-400 hover:text-stone-600"
+                >
+                  {showSignInPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-navy-950 hover:bg-navy-900 text-gold-400 font-bold text-xs sm:text-sm shadow-md transition disabled:opacity-50"
+            >
+              <LogIn className="w-4 h-4 text-gold-400" />
+              <span>{isLoading ? (language === 'ar' ? 'جارٍ تسجيل الدخول...' : 'Signing in...') : t.auth.signInButton}</span>
+            </button>
+          </form>
+        )}
+
+        {/* SIGN UP FORM (MEMBER REGISTRATION) */}
+        {authMode === 'signup' && (
+          <form onSubmit={handleSignUp} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-stone-700 mb-1">
+                {t.auth.fullNameLabel}
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
+                <input
+                  type="text"
+                  required
+                  value={signUpName}
+                  onChange={(e) => setSignUpName(e.target.value)}
+                  placeholder={language === 'ar' ? 'الاسم ثلاثي أو رباعي' : 'Full Name'}
+                  className="w-full text-xs ps-10 pe-4 py-2.5 rounded-xl border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-gold-500 focus:bg-white transition"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-stone-700 mb-1">
+                {t.auth.emailLabel}
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
+                <input
+                  type="email"
+                  required
+                  value={signUpEmail}
+                  onChange={(e) => setSignUpEmail(e.target.value)}
+                  placeholder="your.email@example.com"
+                  className="w-full text-xs ps-10 pe-4 py-2.5 rounded-xl border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-gold-500 focus:bg-white transition"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-stone-700 mb-1">
+                {t.auth.phoneLabel}
+              </label>
+              <div className="relative">
+                <Phone className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
+                <input
+                  type="tel"
+                  required
+                  value={signUpPhone}
+                  onChange={(e) => setSignUpPhone(e.target.value)}
+                  placeholder="01234567890"
                   className="w-full text-xs ps-10 pe-4 py-2.5 rounded-xl border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-gold-500 focus:bg-white transition"
                 />
               </div>
@@ -124,211 +349,119 @@ export const LoginPage: React.FC = () => {
               <div className="relative">
                 <Lock className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
                 <input
-                  type="password"
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
+                  type={showSignUpPassword ? 'text' : 'password'}
+                  required
+                  value={signUpPassword}
+                  onChange={(e) => setSignUpPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full text-xs ps-10 pe-10 py-2.5 rounded-xl border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-gold-500 focus:bg-white transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSignUpPassword(!showSignUpPassword)}
+                  className="absolute end-3 top-2.5 p-0.5 text-stone-400 hover:text-stone-600"
+                >
+                  {showSignUpPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-stone-700 mb-1">
+                {t.auth.confirmPasswordLabel}
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
+                <input
+                  type={showSignUpPassword ? 'text' : 'password'}
+                  required
+                  value={signUpConfirmPassword}
+                  onChange={(e) => setSignUpConfirmPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full text-xs ps-10 pe-4 py-2.5 rounded-xl border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-gold-500 focus:bg-white transition"
                 />
               </div>
             </div>
 
+            <div className="p-3 bg-gold-50/70 rounded-2xl border border-gold-200 text-[11px] text-church-950 leading-relaxed">
+              ℹ️ {t.auth.registerMemberNotice}
+            </div>
+
             <button
               type="submit"
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-navy-950 hover:bg-navy-900 text-gold-400 font-bold text-xs sm:text-sm shadow-md transition"
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-navy-950 hover:bg-navy-900 text-gold-400 font-bold text-xs sm:text-sm shadow-md transition disabled:opacity-50"
             >
-              <LogIn className="w-4 h-4 text-gold-400" />
-              <span>{t.auth.signInButton}</span>
+              <UserPlus className="w-4 h-4 text-gold-400" />
+              <span>{isLoading ? (language === 'ar' ? 'جارٍ إنشاء الحساب...' : 'Creating account...') : t.auth.signUpButton}</span>
             </button>
           </form>
+        )}
 
-          <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 text-center text-[11px] text-stone-500">
+        {/* Security & RLS Footer */}
+        <div className="pt-2 border-t border-stone-100 flex items-center justify-center gap-2 text-center text-[11px] text-stone-500">
+          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+          <span>
             {language === 'ar' 
-              ? '✝ نظام تسجيل دخول ومصادقة متكامل مع أمان قواعد البيانات RLS' 
-              : '✝ Full account authentication with Postgres RLS authorization'}
-          </div>
-        </div>
-
-        {/* Right Column: Dummy / Demo Accounts List */}
-        <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 border border-stone-200 shadow-xl space-y-5">
-          
-          <div className="flex items-center gap-2.5 pb-3 border-b border-stone-200">
-            <div className="p-2 rounded-xl bg-gold-500 text-navy-950 font-bold">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-navy-950 font-serif">
-                {t.auth.demoAccountsTitle}
-              </h3>
-              <p className="text-xs text-stone-500">
-                {t.auth.demoAccountsSubtitle}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            
-            {/* 0. Super Admin Group */}
-            {admins.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-800">
-                  <Crown className="w-3.5 h-3.5 text-amber-600" />
-                  <span>{t.roles.admin}</span>
-                </div>
-
-                <div className="grid grid-cols-1 gap-2.5">
-                  {admins.map((user) => (
-                    <button
-                      key={user.id}
-                      onClick={() => handleQuickLogin(user)}
-                      className="p-3.5 rounded-2xl border-2 border-amber-300 hover:border-gold-500 bg-amber-50/60 hover:bg-gold-50 text-start flex items-center justify-between gap-3 group transition-all shadow-sm"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <img
-                          src={user.avatar_url}
-                          alt={user.name}
-                          className="w-10 h-10 rounded-xl object-cover ring-2 ring-gold-400 shrink-0"
-                        />
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-navy-950 truncate group-hover:text-gold-700">
-                            {language === 'ar' ? (user.title_ar || user.name) : (user.title_en || user.name)}
-                          </p>
-                          <p className="text-[10px] text-stone-500 truncate">
-                            {user.email} {language === 'ar' ? '(إنشاء المستخدمين وتعيين الصلاحيات)' : '(User Creation & Role Assignment)'}
-                          </p>
-                          <Badge role={user.role} size="sm" className="mt-1" />
-                        </div>
-                      </div>
-
-                      <div className="p-1.5 rounded-lg bg-white border border-stone-200 text-stone-400 group-hover:text-gold-600 transition shrink-0">
-                        <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 1. Priests Group */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-church-700">
-                <span>⛪</span>
-                <span>{t.roles.priest} ({priests.length})</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {priests.map((user) => (
-                  <button
-                    key={user.id}
-                    onClick={() => handleQuickLogin(user)}
-                    className="p-3 rounded-2xl border-2 border-stone-200 hover:border-gold-500 bg-stone-50/70 hover:bg-gold-50/40 text-start flex items-center justify-between gap-3 group transition-all shadow-sm"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <img
-                        src={user.avatar_url}
-                        alt={user.name}
-                        className="w-9 h-9 rounded-xl object-cover ring-2 ring-gold-400 shrink-0"
-                      />
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-navy-950 truncate group-hover:text-gold-700">
-                          {language === 'ar' ? (user.title_ar || user.name) : (user.title_en || user.name)}
-                        </p>
-                        <p className="text-[10px] text-stone-500 truncate">
-                          {user.email}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="p-1 rounded-lg bg-white border border-stone-200 text-stone-400 group-hover:text-gold-600 transition shrink-0">
-                      <ArrowRight className="w-3 h-3 rtl:rotate-180" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 2. Secretary Group */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-purple-700">
-                <span>📋</span>
-                <span>{t.roles.secretary} ({secretaries.length})</span>
-              </div>
-
-              <div className="grid grid-cols-1 gap-2.5">
-                {secretaries.map((user) => (
-                  <button
-                    key={user.id}
-                    onClick={() => handleQuickLogin(user)}
-                    className="p-3 rounded-2xl border-2 border-stone-200 hover:border-purple-500 bg-stone-50/70 hover:bg-purple-50/40 text-start flex items-center justify-between gap-3 group transition-all shadow-sm"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <img
-                        src={user.avatar_url}
-                        alt={user.name}
-                        className="w-9 h-9 rounded-xl object-cover ring-2 ring-purple-400 shrink-0"
-                      />
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-navy-950 truncate group-hover:text-purple-700">
-                          {language === 'ar' ? (user.title_ar || user.name) : (user.title_en || user.name)}
-                        </p>
-                        <p className="text-[10px] text-stone-500 truncate">
-                          {user.email} {language === 'ar' ? '(عمليات السكرتارية والآباء المسندون)' : '(Church Operations & Assigned Priests)'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="p-1 rounded-lg bg-white border border-stone-200 text-stone-400 group-hover:text-purple-600 transition shrink-0">
-                      <ArrowRight className="w-3 h-3 rtl:rotate-180" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 3. General Members Group */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sky-700">
-                <span>👤</span>
-                <span>{t.roles.general} ({members.length})</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {members.map((user) => (
-                  <button
-                    key={user.id}
-                    onClick={() => handleQuickLogin(user)}
-                    className="p-2.5 rounded-2xl border-2 border-stone-200 hover:border-sky-500 bg-stone-50/70 hover:bg-sky-50/40 text-start flex flex-col justify-between gap-2 group transition-all shadow-sm"
-                  >
-                    <div className="flex items-center gap-2">
-                      <img
-                        src={user.avatar_url}
-                        alt={user.name}
-                        className="w-7 h-7 rounded-lg object-cover ring-1 ring-sky-400 shrink-0"
-                      />
-                      <div className="min-w-0">
-                        <p className="text-[11px] font-bold text-navy-950 truncate group-hover:text-sky-700">
-                          {language === 'ar' ? (user.title_ar || user.name) : (user.title_en || user.name)}
-                        </p>
-                        <p className="text-[9px] text-stone-400 truncate">
-                          {user.email}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1 border-t border-stone-200/60 text-[9px] font-semibold text-sky-800">
-                      <span>{t.auth.signInAs}</span>
-                      <ArrowRight className="w-2.5 h-2.5 rtl:rotate-180 text-sky-600" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-          </div>
-
+              ? 'نظام مؤمن بمستويات صلاحيات وقواعد أمان Row Level Security' 
+              : 'Secured with Postgres Row Level Security (RLS) policies'}
+          </span>
         </div>
 
       </div>
+
+      {/* Forgot Password Modal */}
+      {isForgotModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-stone-200 space-y-4">
+            <div className="flex items-center gap-2 text-church-700">
+              <KeyRound className="w-5 h-5" />
+              <h3 className="font-bold text-base text-navy-950 font-serif">
+                {t.auth.forgotPassword}
+              </h3>
+            </div>
+
+            {forgotSent ? (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs">
+                {language === 'ar' 
+                  ? 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.' 
+                  : 'A password reset link has been dispatched to your email.'}
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-3">
+                <p className="text-xs text-stone-600 leading-relaxed">
+                  {t.auth.resetPasswordPrompt}
+                </p>
+                <input
+                  type="email"
+                  required
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="your.email@example.com"
+                  className="w-full text-xs p-2.5 rounded-xl border border-stone-300 focus:ring-2 focus:ring-gold-500"
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-2.5 rounded-xl bg-navy-950 text-gold-400 text-xs font-bold shadow transition"
+                >
+                  {isLoading ? (language === 'ar' ? 'جارٍ الإرسال...' : 'Sending...') : (language === 'ar' ? 'إرسال الرابط' : 'Send Reset Link')}
+                </button>
+              </form>
+            )}
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setIsForgotModalOpen(false)}
+                className="px-4 py-1.5 rounded-xl bg-stone-100 text-stone-700 text-xs font-semibold hover:bg-stone-200"
+              >
+                {t.common.close}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

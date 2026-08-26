@@ -31,12 +31,27 @@ export interface Translations {
   auth: {
     signInTitle: string;
     signInSubtitle: string;
+    signUpTitle: string;
+    signUpSubtitle: string;
     emailLabel: string;
     passwordLabel: string;
+    confirmPasswordLabel: string;
+    fullNameLabel: string;
+    phoneLabel: string;
     signInButton: string;
-    demoAccountsTitle: string;
-    demoAccountsSubtitle: string;
-    signInAs: string;
+    signUpButton: string;
+    alreadyHaveAccount: string;
+    dontHaveAccount: string;
+    passwordsDoNotMatch: string;
+    signUpSuccess: string;
+    forgotPassword: string;
+    resetPasswordPrompt: string;
+    invalidCredentials: string;
+    nameRequired: string;
+    phoneRequired: string;
+    passwordMinLength: string;
+    welcomeBack: string;
+    registerMemberNotice: string;
     signOut: string;
     loggedInAs: string;
     switchAccount: string;
@@ -267,14 +282,29 @@ const translations: Record<Language, Translations> = {
       demoRoleSwitcher: "Interactive Role Switcher",
     },
     auth: {
-      signInTitle: "Sign In to Portal",
-      signInSubtitle: "Choose a demo account or sign in with your email to book or manage confessions.",
+      signInTitle: "Sign In to Your Account",
+      signInSubtitle: "Sign in with your email and password to access the confession appointment portal.",
+      signUpTitle: "Create a New Member Account",
+      signUpSubtitle: "Register your details to book and manage confession appointments with Church Fathers.",
       emailLabel: "Email Address",
       passwordLabel: "Password",
+      confirmPasswordLabel: "Confirm Password",
+      fullNameLabel: "Full Name",
+      phoneLabel: "Phone Number",
       signInButton: "Sign In",
-      demoAccountsTitle: "Demo Accounts List (One-Click Sign In)",
-      demoAccountsSubtitle: "Click any account below to sign in instantly with that role's permissions:",
-      signInAs: "Sign In as",
+      signUpButton: "Create Account",
+      alreadyHaveAccount: "Already have an account? Sign in",
+      dontHaveAccount: "Don't have an account? Create one",
+      passwordsDoNotMatch: "Passwords do not match",
+      signUpSuccess: "Account created successfully! Welcome to the Holy Confession portal.",
+      forgotPassword: "Forgot Password?",
+      resetPasswordPrompt: "Enter your email to receive a password reset link:",
+      invalidCredentials: "Invalid email or password. Please try again.",
+      nameRequired: "Full Name is required.",
+      phoneRequired: "Phone Number is required.",
+      passwordMinLength: "Password must be at least 6 characters.",
+      welcomeBack: "Welcome back",
+      registerMemberNotice: "New accounts are registered as Congregation Members. Priest and Secretary roles are assigned by the Church Administrator.",
       signOut: "Sign Out",
       loggedInAs: "Logged in as",
       switchAccount: "Switch Account",
@@ -503,14 +533,29 @@ const translations: Record<Language, Translations> = {
       demoRoleSwitcher: "المبدل التفاعلي للأدوار",
     },
     auth: {
-      signInTitle: "تسجيل الدخول للنظام",
-      signInSubtitle: "اختر أحد الحسابات التجريبية أو سجل دخولك بالبريد الإلكتروني لحجز ومتابعة الاعترافات.",
+      signInTitle: "تسجيل الدخول إلى حسابك",
+      signInSubtitle: "أدخل بريدك الإلكتروني وكلمة المرور للدخول إلى بوابة حجز ومتابعة سر الاعتراف.",
+      signUpTitle: "إنشاء حساب جديد لشعب الكنيسة",
+      signUpSubtitle: "سجل بياناتك الشخصية لحجز ومتابعة مواعيد الاعتراف مع الآباء الكهنة بكل سهولة.",
       emailLabel: "البريد الإلكتروني",
       passwordLabel: "كلمة المرور",
+      confirmPasswordLabel: "تأكيد كلمة المرور",
+      fullNameLabel: "الاسم بالكامل (ثلاثي أو رباعي)",
+      phoneLabel: "رقم الهاتف المحمول",
       signInButton: "تسجيل الدخول",
-      demoAccountsTitle: "قائمة الحسابات التجريبية (دخول مباشر بنقرة واحدة)",
-      demoAccountsSubtitle: "انقر على أي حساب أدناه لتسجيل الدخول الفوري بصلاحياته المحددة:",
-      signInAs: "الدخول بحساب",
+      signUpButton: "إنشاء الحساب",
+      alreadyHaveAccount: "لديك حساب بالفعل؟ تسجيل الدخول",
+      dontHaveAccount: "ليس لديك حساب؟ إنشاء حساب جديد",
+      passwordsDoNotMatch: "كلمتا المرور غير متطابقتين، يرجى التأكد وإعادة المحاولة.",
+      signUpSuccess: "تم إنشاء الحساب بنجاح! أهلاً بك في منظومة سر الاعتراف المقدس.",
+      forgotPassword: "نسيت كلمة المرور؟",
+      resetPasswordPrompt: "أدخل بريدك الإلكتروني المسجل لإرسال رابط إعادة تعيين كلمة المرور:",
+      invalidCredentials: "البريد الإلكتروني أو كلمة المرور غير صحيحة. يرجى التحقق وإعادة المحاولة.",
+      nameRequired: "الاسم بالكامل مطلوب.",
+      phoneRequired: "رقم الهاتف المحمول مطلوب.",
+      passwordMinLength: "يجب ألا تقل كلمة المرور عن 6 أحرف.",
+      welcomeBack: "مرحباً بك مجدداً",
+      registerMemberNotice: "يتم تسجيل الحسابات الجديدة تلقائياً كـ (شعب الكنيسة). ترقية الحسابات لكاهن أو سكرتارية تتم بواسطة مدير النظام.",
       signOut: "تسجيل الخروج",
       loggedInAs: "مسجل الدخول باسم",
       switchAccount: "تبديل الحساب",

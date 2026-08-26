@@ -28,7 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   const { 
     currentUser, 
     unreadNotificationsCount, 
-    logout, 
+    signOut, 
     setSelectedPriestForBooking,
     setSelectedPriestForSecretary 
   } = useAppStore();
@@ -230,7 +230,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
 
               {/* Sign Out Button */}
               <button
-                onClick={logout}
+                onClick={signOut}
                 className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-stone-300 hover:border-rose-300 hover:bg-rose-50 text-stone-600 hover:text-rose-700 text-xs font-bold transition"
                 title={t.auth.signOut}
               >
@@ -269,7 +269,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               </div>
 
               <button
-                onClick={logout}
+                onClick={signOut}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-50 text-rose-700 text-xs font-bold border border-rose-200"
               >
                 <LogOut className="w-3.5 h-3.5" />

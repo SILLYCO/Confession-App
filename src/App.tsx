@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { I18nProvider } from './lib/i18n';
 import { AppStoreProvider, useAppStore } from './lib/store';
-import { UserSwitcherBar } from './components/auth/UserSwitcherBar';
 import { LoginPage } from './components/auth/LoginPage';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
@@ -37,17 +36,13 @@ const MainAppContent: React.FC = () => {
     }
   }, [currentUser?.role]);
 
-  // If not logged in, display the Login Page with demo accounts list
+  // If not logged in, display the Login Page
   if (!isLoggedIn || !currentUser) {
     return <LoginPage />;
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50 font-sans text-stone-900 selection:bg-gold-500 selection:text-white">
-      
-      {/* Interactive Role Switcher Top Bar */}
-      <UserSwitcherBar />
-
       {/* Main Navbar */}
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 

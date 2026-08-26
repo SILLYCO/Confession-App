@@ -29,6 +29,17 @@ interface AppStoreContextType {
   login: (user: User) => void;
   loginWithEmail: (email: string) => boolean;
   logout: () => void;
+  signIn: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
+  signUp: (params: { 
+    name: string; 
+    email: string; 
+    password?: string; 
+    phone?: string; 
+    title_ar?: string; 
+    title_en?: string 
+  }) => Promise<{ success: boolean; error?: string }>;
+  signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   
   allUsers: User[];
   priests: User[];
@@ -122,8 +133,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (saved) {
       try { return JSON.parse(saved); } catch {}
     }
-    // Default to first member for initial view
-    return MOCK_USERS.find(u => u.role === 'general') || MOCK_USERS[4];
+    return null;
   });
 
   const [selectedPriestForBooking, setSelectedPriestForBooking] = useState<User | null>(null);
@@ -204,6 +214,172 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSelectedPriestForSecretary(null);
     localStorage.removeItem(LOCAL_STORAGE_KEY_CURRENT_USER);
   };
+
+  // Synchronize with Supabase Auth state if configured
+  useEffect(() => {
+    const client = supabase;
+    if (!client || !isSupabaseConfigured) return;
+
+    client.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        client
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data: profile }) => {
+            if (profile) {
+              login(profile);
+            }
+          });
+      }
+    });
+
+    const { data: authListener } = client.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const { data: profile } = await client
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        if (profile) {
+          login(profile);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        logout();
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const signIn = useCallback(async (email: string, password?: string): Promise<{ success: boolean; error?: string }> => {
+    if (supabase && isSupabaseConfigured) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password || '123456',
+      });
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profile) {
+          login(profile);
+        } else {
+          const fallbackUser: User = {
+            id: data.user.id,
+            name: data.user.user_metadata?.name || email.split('@')[0],
+            email: data.user.email || email,
+            role: data.user.user_metadata?.role || 'general',
+            phone: data.user.user_metadata?.phone,
+          };
+          login(fallbackUser);
+        }
+        return { success: true };
+      }
+    }
+
+    // Local persistent database authentication
+    const found = allUsers.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
+    if (found) {
+      login(found);
+      return { success: true };
+    }
+    return { success: false, error: 'INVALID_CREDENTIALS' };
+  }, [allUsers]);
+
+  const signUp = useCallback(async (params: {
+    name: string;
+    email: string;
+    password?: string;
+    phone?: string;
+    title_ar?: string;
+    title_en?: string;
+  }): Promise<{ success: boolean; error?: string }> => {
+    if (supabase && isSupabaseConfigured) {
+      const { data, error } = await supabase.auth.signUp({
+        email: params.email.trim(),
+        password: params.password || '123456',
+        options: {
+          data: {
+            name: params.name.trim(),
+            phone: params.phone?.trim(),
+            role: 'general',
+            title_ar: params.title_ar || params.name.trim(),
+            title_en: params.title_en || params.name.trim(),
+          }
+        }
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      if (data.user) {
+        const newUser: User = {
+          id: data.user.id,
+          name: params.name.trim(),
+          email: params.email.trim(),
+          phone: params.phone?.trim(),
+          role: 'general',
+          title_ar: params.title_ar || params.name.trim(),
+          title_en: params.title_en || params.name.trim(),
+          avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100',
+          created_at: new Date().toISOString(),
+        };
+
+        await supabase.from('users').upsert(newUser);
+        setAllUsers(prev => [...prev.filter(u => u.id !== newUser.id), newUser]);
+        login(newUser);
+        return { success: true };
+      }
+    }
+
+    // Local persistent database registration
+    const existing = allUsers.find(u => u.email.toLowerCase() === params.email.trim().toLowerCase());
+    if (existing) {
+      return { success: false, error: 'EMAIL_EXISTS' };
+    }
+
+    const newUser: User = {
+      id: 'usr_' + Math.random().toString(36).substring(2, 9),
+      name: params.name.trim(),
+      email: params.email.trim(),
+      phone: params.phone?.trim(),
+      role: 'general',
+      title_ar: params.title_ar || params.name.trim(),
+      title_en: params.title_en || params.name.trim(),
+      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100',
+      created_at: new Date().toISOString(),
+    };
+
+    setAllUsers(prev => [...prev, newUser]);
+    login(newUser);
+    return { success: true };
+  }, [allUsers]);
+
+  const signOut = useCallback(async () => {
+    if (supabase && isSupabaseConfigured) {
+      await supabase.auth.signOut();
+    }
+    logout();
+  }, []);
+
+  const resetPassword = useCallback(async (email: string): Promise<{ success: boolean; error?: string }> => {
+    if (supabase && isSupabaseConfigured) {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+      if (error) return { success: false, error: error.message };
+    }
+    return { success: true };
+  }, []);
 
   const isLoggedIn = Boolean(currentUser);
 
@@ -1014,6 +1190,10 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         login,
         loginWithEmail,
         logout,
+        signIn,
+        signUp,
+        signOut,
+        resetPassword,
         allUsers,
         priests,
         secretaries,
