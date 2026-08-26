@@ -936,7 +936,8 @@ BEGIN
         last_sign_in_at,
         created_at,
         updated_at
-    ) VALUES (
+    )
+    SELECT
         v_user_id,
         v_user_id,
         jsonb_build_object('sub', v_user_id::text, 'email', lower(trim(p_email))),
@@ -945,8 +946,11 @@ BEGIN
         NOW(),
         NOW(),
         NOW()
-    )
-    ON CONFLICT (id) DO NOTHING;
+    WHERE NOT EXISTS (
+        SELECT 1 FROM auth.identities i 
+        WHERE i.user_id = v_user_id 
+           OR (i.provider = 'email' AND (i.provider_id = v_user_id::text OR i.provider_id = lower(trim(p_email))))
+    );
 
     -- 3. Upsert into public.users
     INSERT INTO public.users (
