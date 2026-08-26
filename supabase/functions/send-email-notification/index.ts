@@ -56,8 +56,8 @@ serve(async (req) => {
         </div>
         
         <div style="background-color: #f5f0e4; padding: 16px; text-align: center; font-size: 12px; color: #67432a;">
-          <p style="margin: 0;">St. George & St. Anthony Coptic Orthodox Church</p>
-          <p style="margin: 4px 0 0 0;">كنيسة الشهيد العظيم مارجرجس والأنبا أنطونيوس</p>
+          <p style="margin: 0;">Saint Mark Church Shobra</p>
+          <p style="margin: 4px 0 0 0;">كنيسة الشهيد العظيم مارمرقس بشبرا</p>
         </div>
       </div>
     `;

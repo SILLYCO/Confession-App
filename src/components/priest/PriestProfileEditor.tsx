@@ -39,8 +39,8 @@ export const PriestProfileEditor: React.FC = () => {
   const [phone, setPhone] = useState(currentUser?.phone || '');
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatar_url || PRESET_PRIEST_AVATARS[0].url);
 
-  const [churchNameEn, setChurchNameEn] = useState(profile?.church_name_en || 'St. George & St. Anthony Coptic Orthodox Church');
-  const [churchNameAr, setChurchNameAr] = useState(profile?.church_name_ar || 'كنيسة الشهيد العظيم مارجرجس والأنبا أنطونيوس');
+  const [churchNameEn, setChurchNameEn] = useState(profile?.church_name_en || 'Saint Mark Church Shobra');
+  const [churchNameAr, setChurchNameAr] = useState(profile?.church_name_ar || 'كنيسة الشهيد العظيم مارمرقس بشبرا');
   const [bioEn, setBioEn] = useState(profile?.bio_en || '');
   const [bioAr, setBioAr] = useState(profile?.bio_ar || '');
 
@@ -335,7 +335,7 @@ export const PriestProfileEditor: React.FC = () => {
               type="text"
               value={churchNameEn}
               onChange={(e) => setChurchNameEn(e.target.value)}
-              placeholder="e.g. St. George & St. Anthony Coptic Orthodox Church"
+              placeholder="e.g. Saint Mark Church Shobra"
               className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:ring-2 focus:ring-gold-500"
             />
           </div>
@@ -348,7 +348,7 @@ export const PriestProfileEditor: React.FC = () => {
               type="text"
               value={churchNameAr}
               onChange={(e) => setChurchNameAr(e.target.value)}
-              placeholder="مثلاً: كنيسة الشهيد العظيم مارجرجس والأنبا أنطونيوس"
+              placeholder="مثلاً: كنيسة الشهيد العظيم مارمرقس بشبرا"
               className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:ring-2 focus:ring-gold-500"
             />
           </div>

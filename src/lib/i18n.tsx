@@ -258,7 +258,7 @@ const translations: Record<Language, Translations> = {
   en: {
     appName: "Confession Scheduling",
     appSubtitle: "Sacrament of Holy Confession Appointment System",
-    churchName: "St. George & St. Anthony Coptic Orthodox Church",
+    churchName: "Saint Mark Church Shobra",
     roles: {
       admin: "Super Admin",
       priest: "Priest (Father)",
@@ -509,7 +509,7 @@ const translations: Record<Language, Translations> = {
   ar: {
     appName: "نظام مواعيد سر الاعتراف",
     appSubtitle: "منظومة حجز ومتابعة مواعيد الاعتراف بالكنيسة",
-    churchName: "كنيسة الشهيد العظيم مارجرجس والأنبا أنطونيوس",
+    churchName: "كنيسة الشهيد العظيم مارمرقس بشبرا",
     roles: {
       admin: "مدير النظام (أدمن)",
       priest: "أبونا (الكاهن)",

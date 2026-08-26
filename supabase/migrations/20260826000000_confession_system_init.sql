@@ -47,8 +47,8 @@ CREATE TABLE IF NOT EXISTS public.priest_profiles (
     -- Array of: { "id": "uuid", "dayOfWeek": 0-6, "startTime": "09:00", "endTime": "12:00" }
     schedule_overrides JSONB NOT NULL DEFAULT '[]'::jsonb,
     -- Array of: { "id": "uuid", "date": "2026-09-01", "startTime": "09:00", "endTime": "13:00", "isUnavailable": boolean, "reason": "Travel" }
-    church_name_ar TEXT DEFAULT 'كنيسة الشهيد العظيم مارجرجس والأنبا أنطونيوس',
-    church_name_en TEXT DEFAULT 'St. George & St. Anthony Coptic Orthodox Church',
+    church_name_ar TEXT DEFAULT 'كنيسة الشهيد العظيم مارمرقس بشبرا',
+    church_name_en TEXT DEFAULT 'Saint Mark Church Shobra',
     bio_ar TEXT,
     bio_en TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

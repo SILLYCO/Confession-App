@@ -68,8 +68,8 @@ export const SuperAdminDashboard: React.FC = () => {
   const [createTitleAr, setCreateTitleAr] = useState('');
   const [createAvatarUrl, setCreateAvatarUrl] = useState(PRESET_AVATARS[0].url);
   const [createAvgDuration, setCreateAvgDuration] = useState(15);
-  const [createChurchNameEn, setCreateChurchNameEn] = useState('St. George & St. Anthony Coptic Orthodox Church');
-  const [createChurchNameAr, setCreateChurchNameAr] = useState('كنيسة الشهيد العظيم مارجرجس والأنبا أنطونيوس');
+  const [createChurchNameEn, setCreateChurchNameEn] = useState('Saint Mark Church Shobra');
+  const [createChurchNameAr, setCreateChurchNameAr] = useState('كنيسة الشهيد العظيم مارمرقس بشبرا');
   const [createBioEn, setCreateBioEn] = useState('');
   const [createBioAr, setCreateBioAr] = useState('');
   const [createAssignedPriests, setCreateAssignedPriests] = useState<string[]>([]);
@@ -108,8 +108,8 @@ export const SuperAdminDashboard: React.FC = () => {
     setCreateTitleAr('');
     setCreateAvatarUrl(PRESET_AVATARS[0].url);
     setCreateAvgDuration(15);
-    setCreateChurchNameEn('St. George & St. Anthony Coptic Orthodox Church');
-    setCreateChurchNameAr('كنيسة الشهيد العظيم مارجرجس والأنبا أنطونيوس');
+    setCreateChurchNameEn('Saint Mark Church Shobra');
+    setCreateChurchNameAr('كنيسة الشهيد العظيم مارمرقس بشبرا');
     setCreateBioEn('');
     setCreateBioAr('');
     setCreateAssignedPriests(priests.map(p => p.id));

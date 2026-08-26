@@ -36,7 +36,7 @@ export const Footer: React.FC = () => {
               <span>Postgres RLS Security & Supabase Auth</span>
             </div>
             <p className="text-[11px] text-stone-400">
-              © {new Date().getFullYear()} St. George & St. Anthony Coptic Orthodox Parish
+              © {new Date().getFullYear()} Saint Mark Church Shobra Parish
             </p>
           </div>
 

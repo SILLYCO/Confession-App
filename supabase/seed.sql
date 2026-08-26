@@ -85,8 +85,8 @@ INSERT INTO public.priest_profiles (
         {"id": "w4", "dayOfWeek": 5, "startTime": "17:00", "endTime": "20:00"}
     ]'::jsonb,
     '[]'::jsonb,
-    'كنيسة الشهيد العظيم مارجرجس والأنبا أنطونيوس',
-    'St. George & St. Anthony Coptic Orthodox Church',
+    'كنيسة الشهيد العظيم مارمرقس بشبرا',
+    'Saint Mark Church Shobra',
     'أب اعتراف وراعي الشباب بالكنيسة. حاصل على بكالوريوس اللاهوت وخدمة المشورة الأسرية.',
     'Parish priest & youth counselor. Serving confession, spiritual guidance, and family counseling.'
 ), (

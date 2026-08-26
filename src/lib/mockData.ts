@@ -89,8 +89,8 @@ export const MOCK_PRIEST_PROFILES: PriestProfile[] = [
       { id: 'w4', dayOfWeek: 5, startTime: '17:00', endTime: '20:00' }, // Friday evening
     ],
     schedule_overrides: [],
-    church_name_ar: 'كنيسة الشهيد العظيم مارجرجس والأنبا أنطونيوس',
-    church_name_en: 'St. George & St. Anthony Coptic Orthodox Church',
+    church_name_ar: 'كنيسة الشهيد العظيم مارمرقس بشبرا',
+    church_name_en: 'Saint Mark Church Shobra',
     bio_ar: 'أب اعتراف وراعي خدمة الشباب بالكنيسة. يقدم الإرشاد الروحي والصلوات الأسرية.',
     bio_en: 'Parish priest & youth spiritual counselor. Serving confessions, spiritual guidance, and family counseling.',
   },
