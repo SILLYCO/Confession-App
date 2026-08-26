@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-stone-50 text-stone-900 selection:bg-gold-500 selection:text-stone-900;
+  }
+}
+
+/* Elegant Liturgical Shadows & Accents */
+.gold-glow {
+  box-shadow: 0 0 20px -5px rgba(212, 175, 55, 0.35);
+}
+
+.gold-border-gradient {
+  border-image: linear-gradient(to bottom right, #d4af37, #b88647, #f4e7b5) 1;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cca26f;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b88647;
+}
