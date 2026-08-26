@@ -5,6 +5,7 @@ import { PriestScheduleEditor } from './PriestScheduleEditor';
 import { PriestOverridesEditor } from './PriestOverridesEditor';
 import { PriestBookingsList } from './PriestBookingsList';
 import { PriestProfileEditor } from './PriestProfileEditor';
+import { DEFAULT_SKELETON_AVATAR } from '../../types/database';
 import { Clock, CalendarOff, UserCheck, Church, UserCircle } from 'lucide-react';
 
 interface PriestDashboardProps {
@@ -36,7 +37,7 @@ export const PriestDashboard: React.FC<PriestDashboardProps> = ({ activeTab, onT
           <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-start gap-4">
             <div className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl ring-4 ring-gold-400 shadow-lg overflow-hidden bg-stone-800 flex items-center justify-center">
               <img
-                src={currentUser.avatar_url || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200'}
+                src={currentUser.avatar_url || DEFAULT_SKELETON_AVATAR}
                 alt={currentUser.name}
                 className="w-full h-full object-cover object-center"
               />

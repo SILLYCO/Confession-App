@@ -10,6 +10,8 @@ export type CancellationReason =
   | 'no_show'
   | string;
 
+export const DEFAULT_SKELETON_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f1f5f9'/%3E%3Ccircle cx='50' cy='38' r='18' fill='%2394a3b8'/%3E%3Cpath d='M20 86c0-16 13.4-28 30-28s30 12 30 28' fill='%2394a3b8'/%3E%3C/svg%3E";
+
 export interface WeeklyScheduleItem {
   id: string;
   dayOfWeek: number; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday

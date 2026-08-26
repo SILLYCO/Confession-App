@@ -17,6 +17,7 @@ import {
   LogOut,
   Crown
 } from 'lucide-react';
+import { DEFAULT_SKELETON_AVATAR } from '../../types/database';
 
 interface NavbarProps {
   activeTab: string;
@@ -216,7 +217,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               {/* User Info & Avatar */}
               <div className="hidden sm:flex items-center gap-2.5 ps-2 border-s border-stone-200">
                 <img
-                  src={currentUser.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100'}
+                  src={currentUser.avatar_url || DEFAULT_SKELETON_AVATAR}
                   alt={currentUser.name}
                   className="w-9 h-9 rounded-full object-cover ring-2 ring-gold-400"
                 />
@@ -256,7 +257,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             <div className="flex items-center justify-between pb-3 border-b border-stone-100">
               <div className="flex items-center gap-3">
                 <img
-                  src={currentUser.avatar_url}
+                  src={currentUser.avatar_url || DEFAULT_SKELETON_AVATAR}
                   alt={currentUser.name}
                   className="w-10 h-10 rounded-full object-cover ring-2 ring-gold-400"
                 />

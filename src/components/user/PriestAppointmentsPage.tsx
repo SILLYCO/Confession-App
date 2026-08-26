@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { useAppStore } from '../../lib/store';
-import { User } from '../../types/database';
+import { User, DEFAULT_SKELETON_AVATAR } from '../../types/database';
 import { SlotCalendar } from './SlotCalendar';
 import { ArrowLeft, Clock, Church, Calendar } from 'lucide-react';
 
@@ -51,7 +51,7 @@ export const PriestAppointmentsPage: React.FC<PriestAppointmentsPageProps> = ({
             {/* Fixed-dimension priest avatar with aspect ratio lock */}
             <div className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-2xl ring-4 ring-gold-400/80 shadow-lg overflow-hidden bg-stone-800 flex items-center justify-center">
               <img
-                src={priest.avatar_url || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200'}
+                src={priest.avatar_url || DEFAULT_SKELETON_AVATAR}
                 alt={priest.name}
                 className="w-full h-full object-cover object-center"
               />

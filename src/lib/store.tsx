@@ -6,7 +6,8 @@ import {
   Booking, 
   NotificationLog, 
   WeeklyScheduleItem, 
-  ScheduleOverride 
+  ScheduleOverride,
+  DEFAULT_SKELETON_AVATAR 
 } from '../types/database';
 import { 
   MOCK_USERS, 
@@ -1083,13 +1084,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         title_en: userData.title_en || userData.name,
         title_ar: userData.title_ar || userData.name,
         assigned_priest_ids: userData.role === 'secretary' ? (userData.assigned_priest_ids || []) : undefined,
-        avatar_url: userData.avatar_url || (
-          userData.role === 'priest'
-            ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200'
-            : userData.role === 'secretary'
-            ? 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200'
-            : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'
-        ),
+        avatar_url: userData.avatar_url || DEFAULT_SKELETON_AVATAR,
         created_at: new Date().toISOString(),
       };
 

@@ -14,17 +14,11 @@ import {
   Phone,
   Mail,
   Clock,
-  BookOpen
+  BookOpen,
+  Trash2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-
-const PRESET_PRIEST_AVATARS = [
-  { label: 'Father (Portrait 1)', url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=300' },
-  { label: 'Father (Portrait 2)', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300' },
-  { label: 'Father (Portrait 3)', url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=300' },
-  { label: 'Father (Portrait 4)', url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=300' },
-  { label: 'Father (Portrait 5)', url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=300' },
-];
+import { DEFAULT_SKELETON_AVATAR } from '../../types/database';
 
 export const PriestProfileEditor: React.FC = () => {
   const { t, language } = useTranslation();
@@ -37,7 +31,7 @@ export const PriestProfileEditor: React.FC = () => {
   const [titleEn, setTitleEn] = useState(currentUser?.title_en || '');
   const [titleAr, setTitleAr] = useState(currentUser?.title_ar || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
-  const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatar_url || PRESET_PRIEST_AVATARS[0].url);
+  const [avatarUrl, setAvatarUrl] = useState(currentUser?.avatar_url || DEFAULT_SKELETON_AVATAR);
 
   const [churchNameEn, setChurchNameEn] = useState(profile?.church_name_en || 'Saint Mark Church Shobra');
   const [churchNameAr, setChurchNameAr] = useState(profile?.church_name_ar || 'كنيسة الشهيد العظيم مارمرقس بشبرا');
@@ -53,7 +47,7 @@ export const PriestProfileEditor: React.FC = () => {
       setTitleEn(currentUser.title_en || currentUser.name);
       setTitleAr(currentUser.title_ar || currentUser.name);
       setPhone(currentUser.phone || '');
-      setAvatarUrl(currentUser.avatar_url || PRESET_PRIEST_AVATARS[0].url);
+      setAvatarUrl(currentUser.avatar_url || DEFAULT_SKELETON_AVATAR);
     }
     if (profile) {
       setChurchNameEn(profile.church_name_en || '');
@@ -173,9 +167,9 @@ export const PriestProfileEditor: React.FC = () => {
         </h3>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 p-4 bg-stone-50 rounded-2xl border border-stone-200">
-          <div className="shrink-0 w-24 h-24 sm:w-28 sm:h-28 rounded-3xl ring-4 ring-gold-400 shadow-lg overflow-hidden bg-stone-200 flex items-center justify-center">
+          <div className="shrink-0 w-24 h-24 sm:w-28 sm:h-28 rounded-3xl ring-4 ring-gold-400 shadow-lg overflow-hidden bg-stone-100 flex items-center justify-center">
             <img
-              src={avatarUrl}
+              src={avatarUrl || DEFAULT_SKELETON_AVATAR}
               alt={currentUser.name}
               className="w-full h-full object-cover object-center"
             />
@@ -193,6 +187,18 @@ export const PriestProfileEditor: React.FC = () => {
                   onChange={handleFileUpload}
                 />
               </label>
+
+              {avatarUrl && avatarUrl !== DEFAULT_SKELETON_AVATAR && (
+                <button
+                  type="button"
+                  onClick={() => setAvatarUrl(DEFAULT_SKELETON_AVATAR)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{language === 'ar' ? 'إزالة الصورة واستخدام الصورة الافتراضية' : 'Use Default Avatar'}</span>
+                </button>
+              )}
+
               <span className="text-[11px] text-stone-500">Supports JPG, PNG, WebP up to 3MB</span>
             </div>
 
@@ -200,38 +206,11 @@ export const PriestProfileEditor: React.FC = () => {
               <LinkIcon className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
               <input
                 type="url"
-                value={avatarUrl}
+                value={avatarUrl === DEFAULT_SKELETON_AVATAR ? '' : avatarUrl}
                 onChange={(e) => setAvatarUrl(e.target.value)}
-                placeholder="Or paste external image URL (https://...)"
+                placeholder="Or paste image URL (https://...)"
                 className="w-full text-xs ps-10 pe-4 py-2.5 rounded-xl border border-stone-300 bg-white focus:ring-2 focus:ring-gold-500"
               />
-            </div>
-
-            {/* Presets */}
-            <div className="pt-2 border-t border-stone-200/80">
-              <span className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
-                {t.adminFlow.presetPhotos}
-              </span>
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-                {PRESET_PRIEST_AVATARS.map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setAvatarUrl(preset.url)}
-                    className={`shrink-0 p-1 rounded-xl border-2 transition ${
-                      avatarUrl === preset.url
-                        ? 'border-gold-500 bg-gold-100/50 scale-105 shadow-sm'
-                        : 'border-transparent hover:border-stone-300'
-                    }`}
-                  >
-                    <img
-                      src={preset.url}
-                      alt={preset.label}
-                      className="w-10 h-10 rounded-lg object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
             </div>
 
           </div>

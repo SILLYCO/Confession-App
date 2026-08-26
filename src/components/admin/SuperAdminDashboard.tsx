@@ -23,17 +23,7 @@ import {
   Link as LinkIcon,
   Image as ImageIcon
 } from 'lucide-react';
-
-const PRESET_AVATARS = [
-  { label: 'Father (Portrait 1)', url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=300' },
-  { label: 'Father (Portrait 2)', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300' },
-  { label: 'Father (Portrait 3)', url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=300' },
-  { label: 'Father (Portrait 4)', url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=300' },
-  { label: 'Archdeacon / Admin', url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=300' },
-  { label: 'Secretary (Sister)', url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300' },
-  { label: 'Member (Brother)', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=300' },
-  { label: 'Member (Sister)', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=300' },
-];
+import { DEFAULT_SKELETON_AVATAR } from '../../types/database';
 
 export const SuperAdminDashboard: React.FC = () => {
   const { t, language } = useTranslation();
@@ -66,7 +56,7 @@ export const SuperAdminDashboard: React.FC = () => {
   const [createRole, setCreateRole] = useState<UserRole>('general');
   const [createTitleEn, setCreateTitleEn] = useState('');
   const [createTitleAr, setCreateTitleAr] = useState('');
-  const [createAvatarUrl, setCreateAvatarUrl] = useState(PRESET_AVATARS[0].url);
+  const [createAvatarUrl, setCreateAvatarUrl] = useState('');
   const [createAvgDuration, setCreateAvgDuration] = useState(15);
   const [createChurchNameEn, setCreateChurchNameEn] = useState('Saint Mark Church Shobra');
   const [createChurchNameAr, setCreateChurchNameAr] = useState('كنيسة الشهيد العظيم مارمرقس بشبرا');
@@ -106,7 +96,7 @@ export const SuperAdminDashboard: React.FC = () => {
     setCreateRole('general');
     setCreateTitleEn('');
     setCreateTitleAr('');
-    setCreateAvatarUrl(PRESET_AVATARS[0].url);
+    setCreateAvatarUrl('');
     setCreateAvgDuration(15);
     setCreateChurchNameEn('Saint Mark Church Shobra');
     setCreateChurchNameAr('كنيسة الشهيد العظيم مارمرقس بشبرا');
@@ -481,9 +471,9 @@ export const SuperAdminDashboard: React.FC = () => {
                 </label>
 
                 <div className="flex items-center gap-4">
-                  <div className="shrink-0 w-16 h-16 rounded-2xl ring-2 ring-gold-400 shadow-md overflow-hidden bg-stone-200 flex items-center justify-center">
+                  <div className="shrink-0 w-16 h-16 rounded-2xl ring-2 ring-gold-400 shadow-md overflow-hidden bg-stone-100 flex items-center justify-center">
                     <img
-                      src={createAvatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'}
+                      src={createAvatarUrl || DEFAULT_SKELETON_AVATAR}
                       alt="Preview"
                       className="w-full h-full object-cover object-center"
                     />
@@ -501,6 +491,18 @@ export const SuperAdminDashboard: React.FC = () => {
                           onChange={(e) => handleFileUpload(e, setCreateAvatarUrl)}
                         />
                       </label>
+
+                      {createAvatarUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setCreateAvatarUrl('')}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-[11px] font-bold hover:bg-rose-100 transition"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>{language === 'ar' ? 'إزالة' : 'Remove'}</span>
+                        </button>
+                      )}
+
                       <span className="text-[10px] text-stone-400">
                         {language === 'ar' ? 'PNG, JPG حتى 3 ميجابايت' : 'PNG, JPG up to 3MB'}
                       </span>
@@ -512,38 +514,10 @@ export const SuperAdminDashboard: React.FC = () => {
                         type="url"
                         value={createAvatarUrl}
                         onChange={(e) => setCreateAvatarUrl(e.target.value)}
-                        placeholder="https://images.unsplash.com/... or paste image URL"
+                        placeholder="https://... or paste image URL"
                         className="w-full text-xs ps-8 pe-3 py-1.5 rounded-xl border border-stone-300 bg-white"
                       />
                     </div>
-                  </div>
-                </div>
-
-                {/* Preset Avatar Gallery */}
-                <div className="pt-2 border-t border-stone-200">
-                  <span className="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1.5">
-                    {t.adminFlow.presetPhotos}
-                  </span>
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-                    {PRESET_AVATARS.map((preset, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setCreateAvatarUrl(preset.url)}
-                        className={`shrink-0 p-1 rounded-xl border-2 transition ${
-                          createAvatarUrl === preset.url
-                            ? 'border-gold-500 bg-gold-100/50 scale-105'
-                            : 'border-transparent hover:border-stone-300'
-                        }`}
-                        title={preset.label}
-                      >
-                        <img
-                          src={preset.url}
-                          alt={preset.label}
-                          className="w-9 h-9 rounded-lg object-cover"
-                        />
-                      </button>
-                    ))}
                   </div>
                 </div>
               </div>
@@ -780,24 +754,38 @@ export const SuperAdminDashboard: React.FC = () => {
                   {t.adminFlow.photoLabel}
                 </label>
                 <div className="flex items-center gap-3">
-                  <div className="shrink-0 w-14 h-14 rounded-2xl ring-2 ring-gold-400 shadow-md overflow-hidden bg-stone-200 flex items-center justify-center">
+                  <div className="shrink-0 w-14 h-14 rounded-2xl ring-2 ring-gold-400 shadow-md overflow-hidden bg-stone-100 flex items-center justify-center">
                     <img
-                      src={editAvatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100'}
+                      src={editAvatarUrl || DEFAULT_SKELETON_AVATAR}
                       alt="Preview"
                       className="w-full h-full object-cover object-center"
                     />
                   </div>
                   <div className="flex-1 space-y-1.5">
-                    <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-navy-950 text-gold-400 font-bold text-[11px]">
-                      <Upload className="w-3 h-3" />
-                      <span>{t.adminFlow.uploadPhoto}</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handleFileUpload(e, setEditAvatarUrl)}
-                      />
-                    </label>
+                    <div className="flex items-center gap-2">
+                      <label className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-navy-950 text-gold-400 font-bold text-[11px]">
+                        <Upload className="w-3 h-3" />
+                        <span>{t.adminFlow.uploadPhoto}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleFileUpload(e, setEditAvatarUrl)}
+                        />
+                      </label>
+
+                      {editAvatarUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setEditAvatarUrl('')}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-[10px] font-bold hover:bg-rose-100 transition"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" />
+                          <span>{language === 'ar' ? 'إزالة' : 'Remove'}</span>
+                        </button>
+                      )}
+                    </div>
+
                     <input
                       type="url"
                       value={editAvatarUrl}
