@@ -945,7 +945,8 @@ BEGIN
         NOW(),
         NOW(),
         NOW()
-    );
+    )
+    ON CONFLICT (id) DO NOTHING;
 
     -- 3. Upsert into public.users
     INSERT INTO public.users (
