@@ -81,6 +81,15 @@ export interface Translations {
     assignPriestsHelper: string;
     priestDurationLabel: string;
     priestBioLabel: string;
+    userPassword: string;
+    confirmPassword: string;
+    generatePassword: string;
+    resetPasswordBtn: string;
+    resetPasswordTitle: string;
+    resetPasswordSubtitle: string;
+    newPasswordLabel: string;
+    confirmNewPasswordLabel: string;
+    passwordResetSuccess: string;
     allUsersTable: string;
     searchUsers: string;
     filterRole: string;
@@ -334,6 +343,15 @@ const translations: Record<Language, Translations> = {
       assignPriestsHelper: "Select which priests this secretary is authorized to manage.",
       priestDurationLabel: "Initial Avg Confession Duration (Minutes)",
       priestBioLabel: "Pastoral Bio / Description",
+      userPassword: "Initial Login Password",
+      confirmPassword: "Confirm Password",
+      generatePassword: "Generate Password",
+      resetPasswordBtn: "Reset Password",
+      resetPasswordTitle: "Reset User Password",
+      resetPasswordSubtitle: "Set a new direct login password for this account.",
+      newPasswordLabel: "New Password",
+      confirmNewPasswordLabel: "Confirm New Password",
+      passwordResetSuccess: "Password reset successfully! The user can now log in with the new password.",
       allUsersTable: "All System Accounts",
       searchUsers: "Search users by name, email, or role...",
       filterRole: "Filter by Role",
@@ -585,6 +603,15 @@ const translations: Record<Language, Translations> = {
       assignPriestsHelper: "حدد الآباء الكهنة المصرح لهذا السكرتير بإدارة مواعيدهم.",
       priestDurationLabel: "متوسط مدة الاعتراف الأولية (بالدقائق)",
       priestBioLabel: "نبذة رعوية عن أبونا",
+      userPassword: "كلمة المرور الأولية للحساب",
+      confirmPassword: "تأكيد كلمة المرور",
+      generatePassword: "توليد كلمة مرور عشوائية",
+      resetPasswordBtn: "تغيير كلمة المرور",
+      resetPasswordTitle: "إعادة تعيين كلمة مرور المستخدم",
+      resetPasswordSubtitle: "تعيين كلمة مرور جديدة ومباشرة لهذا الحساب لتسجيل الدخول الفوري.",
+      newPasswordLabel: "كلمة المرور الجديدة",
+      confirmNewPasswordLabel: "تأكيد كلمة المرور الجديدة",
+      passwordResetSuccess: "تمت إعادة تعيين كلمة المرور بنجاح! يمكن للمستخدم الآن تسجيل الدخول بكلمة المرور الجديدة.",
       allUsersTable: "سجل حسابات ومستخدمي النظام",
       searchUsers: "بحث بالاسم أو البريد أو الصلاحية...",
       filterRole: "تصفية حسب الصلاحية",

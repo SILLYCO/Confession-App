@@ -105,9 +105,10 @@ interface AppStoreContextType {
   ) => Promise<{ success: boolean; error?: string }>;
 
   // Super Admin Actions
-  createUser: (userData: Partial<User>, priestProfileData?: Partial<PriestProfile>) => Promise<{ success: boolean; user?: User; error?: string }>;
+  createUser: (userData: Partial<User>, priestProfileData?: Partial<PriestProfile>, password?: string) => Promise<{ success: boolean; user?: User; error?: string }>;
   updateUser: (userId: string, updates: Partial<User>, priestProfileData?: Partial<PriestProfile>) => Promise<{ success: boolean; error?: string }>;
   deleteUser: (userId: string) => Promise<{ success: boolean; error?: string }>;
+  adminResetPassword: (userId: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
 
   markNotificationAsRead: (notificationId: string) => void;
   markAllNotificationsAsRead: () => void;
@@ -1058,7 +1059,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // ----------------------------------------------------------------------------
   const createUser = useCallback(async (
     userData: Partial<User>, 
-    priestProfileData?: Partial<PriestProfile>
+    priestProfileData?: Partial<PriestProfile>,
+    password?: string
   ): Promise<{ success: boolean; user?: User; error?: string }> => {
     try {
       if (currentUser?.role !== 'admin') {
@@ -1074,9 +1076,37 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return { success: false, error: 'A user with this email address already exists' };
       }
 
-      const newUserId = 'usr_' + Math.random().toString(36).substring(2, 9);
+      let createdId = 'usr_' + Math.random().toString(36).substring(2, 9);
+
+      if (supabase && isSupabaseConfigured) {
+        const { data: newRpcId, error: rpcError } = await supabase.rpc('admin_create_user', {
+          p_email: userData.email.trim(),
+          p_password: password || '123456',
+          p_name: userData.name.trim(),
+          p_phone: userData.phone?.trim() || null,
+          p_role: userData.role,
+          p_title_en: userData.title_en || userData.name,
+          p_title_ar: userData.title_ar || userData.name,
+          p_avatar_url: userData.avatar_url || null,
+          p_assigned_priest_ids: userData.assigned_priest_ids || [],
+          p_avg_duration: priestProfileData?.avg_confession_minutes || 15,
+          p_church_name_en: priestProfileData?.church_name_en || 'Saint Mark Church Shobra',
+          p_church_name_ar: priestProfileData?.church_name_ar || 'كنيسة الشهيد العظيم مارمرقس بشبرا',
+          p_bio_en: priestProfileData?.bio_en || null,
+          p_bio_ar: priestProfileData?.bio_ar || null
+        });
+
+        if (rpcError) {
+          return { success: false, error: rpcError.message };
+        }
+        if (newRpcId) {
+          createdId = newRpcId;
+        }
+        await fetchDatabaseFromSupabase();
+      }
+
       const newUser: User = {
-        id: newUserId,
+        id: createdId,
         name: userData.name,
         email: userData.email,
         phone: userData.phone || undefined,
@@ -1088,12 +1118,12 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         created_at: new Date().toISOString(),
       };
 
-      setAllUsers(prev => [newUser, ...prev]);
+      setAllUsers(prev => [newUser, ...prev.filter(u => u.id !== createdId)]);
 
       // If priest, create PriestProfile
       if (userData.role === 'priest') {
         const newProfile: PriestProfile = {
-          priest_id: newUserId,
+          priest_id: createdId,
           avg_confession_minutes: priestProfileData?.avg_confession_minutes || 15,
           weekly_schedule: priestProfileData?.weekly_schedule || [
             { id: 'w_' + Math.random().toString(36).substring(2, 6), dayOfWeek: 0, startTime: '12:00', endTime: '15:00' },
@@ -1107,7 +1137,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           bio_en: priestProfileData?.bio_en || 'Parish priest & spiritual counselor at Saint Mark Church Shobra.',
           created_at: new Date().toISOString(),
         };
-        setPriestProfiles(prev => [newProfile, ...prev]);
+        setPriestProfiles(prev => [newProfile, ...prev.filter(p => p.priest_id !== createdId)]);
       }
 
       return { success: true, user: newUser };
@@ -1115,7 +1145,35 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (err: any) {
       return { success: false, error: err.message || 'Failed to create user' };
     }
-  }, [currentUser, allUsers]);
+  }, [currentUser, allUsers, fetchDatabaseFromSupabase]);
+
+  const adminResetPassword = useCallback(async (
+    userId: string, 
+    newPassword: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      if (currentUser?.role !== 'admin') {
+        return { success: false, error: 'Unauthorized: Only Super Admin can reset passwords' };
+      }
+      if (!newPassword || newPassword.length < 6) {
+        return { success: false, error: 'Password must be at least 6 characters long' };
+      }
+
+      if (supabase && isSupabaseConfigured) {
+        const { error } = await supabase.rpc('admin_reset_user_password', {
+          p_target_user_id: userId,
+          p_new_password: newPassword
+        });
+        if (error) {
+          return { success: false, error: error.message };
+        }
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to reset password' };
+    }
+  }, [currentUser]);
 
   const updateUser = useCallback(async (
     userId: string, 
@@ -1262,6 +1320,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         createUser,
         updateUser,
         deleteUser,
+        adminResetPassword,
         markNotificationAsRead,
         markAllNotificationsAsRead,
         refreshData,

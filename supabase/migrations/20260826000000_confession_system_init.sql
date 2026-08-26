@@ -820,3 +820,208 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- ------------------------------------------------------------------------------
+-- 7. Super Admin: Create User with Credentials & Password Reset
+-- ------------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.admin_create_user(
+    p_email TEXT,
+    p_password TEXT,
+    p_name TEXT,
+    p_phone TEXT DEFAULT NULL,
+    p_role user_role DEFAULT 'general',
+    p_title_en TEXT DEFAULT NULL,
+    p_title_ar TEXT DEFAULT NULL,
+    p_avatar_url TEXT DEFAULT NULL,
+    p_assigned_priest_ids UUID[] DEFAULT '{}',
+    p_avg_duration INTEGER DEFAULT 15,
+    p_church_name_en TEXT DEFAULT 'Saint Mark Church Shobra',
+    p_church_name_ar TEXT DEFAULT 'كنيسة الشهيد العظيم مارمرقس بشبرا',
+    p_bio_en TEXT DEFAULT NULL,
+    p_bio_ar TEXT DEFAULT NULL
+)
+RETURNS UUID AS $$
+DECLARE
+    v_caller_role user_role;
+    v_user_id UUID := gen_random_uuid();
+BEGIN
+    -- Verify caller is super admin
+    SELECT role INTO v_caller_role FROM public.users WHERE id = auth.uid();
+    IF v_caller_role != 'admin' THEN
+        RAISE EXCEPTION 'Unauthorized: Only Super Administrators can create users directly with credentials.';
+    END IF;
+
+    IF p_email IS NULL OR p_email = '' THEN
+        RAISE EXCEPTION 'Email is required';
+    END IF;
+    IF p_password IS NULL OR length(p_password) < 6 THEN
+        RAISE EXCEPTION 'Password must be at least 6 characters long';
+    END IF;
+
+    -- 1. Insert into auth.users with encrypted password & auto-confirmed email
+    INSERT INTO auth.users (
+        instance_id,
+        id,
+        aud,
+        role,
+        email,
+        encrypted_password,
+        email_confirmed_at,
+        raw_app_meta_data,
+        raw_user_meta_data,
+        created_at,
+        updated_at
+    ) VALUES (
+        '00000000-0000-0000-0000-000000000000',
+        v_user_id,
+        'authenticated',
+        'authenticated',
+        lower(trim(p_email)),
+        crypt(p_password, gen_salt('bf')),
+        NOW(),
+        '{"provider":"email","providers":["email"]}',
+        jsonb_build_object('name', p_name, 'phone', p_phone, 'role', p_role),
+        NOW(),
+        NOW()
+    );
+
+    -- 2. Insert into auth.identities
+    INSERT INTO auth.identities (
+        id,
+        user_id,
+        identity_data,
+        provider,
+        provider_id,
+        last_sign_in_at,
+        created_at,
+        updated_at
+    ) VALUES (
+        v_user_id,
+        v_user_id,
+        jsonb_build_object('sub', v_user_id, 'email', lower(trim(p_email))),
+        'email',
+        lower(trim(p_email)),
+        NOW(),
+        NOW(),
+        NOW()
+    );
+
+    -- 3. Upsert into public.users
+    INSERT INTO public.users (
+        id,
+        name,
+        email,
+        phone,
+        role,
+        title_en,
+        title_ar,
+        avatar_url,
+        assigned_priest_ids,
+        created_at,
+        updated_at
+    ) VALUES (
+        v_user_id,
+        p_name,
+        lower(trim(p_email)),
+        p_phone,
+        p_role,
+        COALESCE(p_title_en, p_name),
+        COALESCE(p_title_ar, p_name),
+        p_avatar_url,
+        COALESCE(p_assigned_priest_ids, '{}'),
+        NOW(),
+        NOW()
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        name = EXCLUDED.name,
+        role = EXCLUDED.role,
+        phone = EXCLUDED.phone,
+        title_en = EXCLUDED.title_en,
+        title_ar = EXCLUDED.title_ar,
+        avatar_url = EXCLUDED.avatar_url,
+        assigned_priest_ids = EXCLUDED.assigned_priest_ids,
+        updated_at = NOW();
+
+    -- 4. If role is priest, create priest_profiles and generate initial slots
+    IF p_role = 'priest' THEN
+        INSERT INTO public.priest_profiles (
+            priest_id,
+            avg_confession_minutes,
+            weekly_schedule,
+            schedule_overrides,
+            church_name_en,
+            church_name_ar,
+            bio_en,
+            bio_ar,
+            created_at,
+            updated_at
+        ) VALUES (
+            v_user_id,
+            COALESCE(p_avg_duration, 15),
+            '[
+                {"id": "w1", "dayOfWeek": 0, "startTime": "12:00", "endTime": "15:00"},
+                {"id": "w2", "dayOfWeek": 3, "startTime": "18:00", "endTime": "21:00"},
+                {"id": "w3", "dayOfWeek": 5, "startTime": "17:00", "endTime": "20:00"}
+            ]'::jsonb,
+            '[]'::jsonb,
+            p_church_name_en,
+            p_church_name_ar,
+            COALESCE(p_bio_en, 'Parish priest & counselor.'),
+            COALESCE(p_bio_ar, 'كاهن ومرشد روحي.'),
+            NOW(),
+            NOW()
+        )
+        ON CONFLICT (priest_id) DO UPDATE SET
+            avg_confession_minutes = EXCLUDED.avg_confession_minutes,
+            church_name_en = EXCLUDED.church_name_en,
+            church_name_ar = EXCLUDED.church_name_ar,
+            bio_en = EXCLUDED.bio_en,
+            bio_ar = EXCLUDED.bio_ar,
+            updated_at = NOW();
+
+        -- Generate initial rolling slots
+        PERFORM public.generate_slots_for_priest(v_user_id, CURRENT_DATE, (CURRENT_DATE + INTERVAL '14 days')::DATE);
+    END IF;
+
+    RETURN v_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.admin_reset_user_password(
+    p_target_user_id UUID,
+    p_new_password TEXT
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_caller_role user_role;
+BEGIN
+    -- Verify caller is super admin
+    SELECT role INTO v_caller_role FROM public.users WHERE id = auth.uid();
+    IF v_caller_role != 'admin' THEN
+        RAISE EXCEPTION 'Unauthorized: Only Super Administrators can reset passwords for other accounts.';
+    END IF;
+
+    IF p_new_password IS NULL OR length(p_new_password) < 6 THEN
+        RAISE EXCEPTION 'Password must be at least 6 characters long';
+    END IF;
+
+    -- Update encrypted_password in auth.users
+    UPDATE auth.users
+    SET 
+        encrypted_password = crypt(p_new_password, gen_salt('bf')),
+        email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
+        updated_at = NOW()
+    WHERE id = p_target_user_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'User not found in authentication registry';
+    END IF;
+
+    RETURN true;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.admin_create_user TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_reset_user_password TO authenticated;

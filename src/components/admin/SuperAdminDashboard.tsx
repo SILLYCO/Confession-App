@@ -21,7 +21,11 @@ import {
   Camera,
   Upload,
   Link as LinkIcon,
-  Image as ImageIcon
+  Image as ImageIcon,
+  KeyRound,
+  Eye,
+  EyeOff,
+  RefreshCw
 } from 'lucide-react';
 import { DEFAULT_SKELETON_AVATAR } from '../../types/database';
 
@@ -35,7 +39,8 @@ export const SuperAdminDashboard: React.FC = () => {
     priestProfiles, 
     createUser, 
     updateUser, 
-    deleteUser 
+    deleteUser,
+    adminResetPassword 
   } = useAppStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,6 +50,7 @@ export const SuperAdminDashboard: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [resettingUser, setResettingUser] = useState<User | null>(null);
 
   // Feedback alerts
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -54,6 +60,9 @@ export const SuperAdminDashboard: React.FC = () => {
   const [createEmail, setCreateEmail] = useState('');
   const [createPhone, setCreatePhone] = useState('');
   const [createRole, setCreateRole] = useState<UserRole>('general');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createConfirmPassword, setCreateConfirmPassword] = useState('');
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [createTitleEn, setCreateTitleEn] = useState('');
   const [createTitleAr, setCreateTitleAr] = useState('');
   const [createAvatarUrl, setCreateAvatarUrl] = useState('');
@@ -65,6 +74,12 @@ export const SuperAdminDashboard: React.FC = () => {
   const [createAssignedPriests, setCreateAssignedPriests] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Reset password form state
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
   // Edit user form state
   const [editRole, setEditRole] = useState<UserRole>('general');
   const [editName, setEditName] = useState('');
@@ -73,6 +88,15 @@ export const SuperAdminDashboard: React.FC = () => {
   const [editTitleEn, setEditTitleEn] = useState('');
   const [editTitleAr, setEditTitleAr] = useState('');
   const [editAssignedPriests, setEditAssignedPriests] = useState<string[]>([]);
+
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let pass = '';
+    for (let i = 0; i < 7; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return pass + '@26';
+  };
 
   // Filtered users
   const filteredUsers = useMemo(() => {
@@ -90,10 +114,14 @@ export const SuperAdminDashboard: React.FC = () => {
   }, [allUsers, selectedRoleFilter, searchQuery]);
 
   const handleOpenCreateModal = () => {
+    const initialPass = generateRandomPassword();
     setCreateName('');
     setCreateEmail('');
     setCreatePhone('');
     setCreateRole('general');
+    setCreatePassword(initialPass);
+    setCreateConfirmPassword(initialPass);
+    setShowCreatePassword(false);
     setCreateTitleEn('');
     setCreateTitleAr('');
     setCreateAvatarUrl('');
@@ -104,6 +132,15 @@ export const SuperAdminDashboard: React.FC = () => {
     setCreateBioAr('');
     setCreateAssignedPriests(priests.map(p => p.id));
     setIsCreateModalOpen(true);
+  };
+
+  const handleOpenResetPasswordModal = (user: User) => {
+    const generated = generateRandomPassword();
+    setResettingUser(user);
+    setNewPassword(generated);
+    setConfirmNewPassword(generated);
+    setShowNewPassword(true);
+    setFeedback(null);
   };
 
   const handleOpenEditModal = (user: User) => {
@@ -139,6 +176,15 @@ export const SuperAdminDashboard: React.FC = () => {
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (createPassword.length < 6) {
+      setFeedback({ type: 'error', message: t.auth.passwordMinLength });
+      return;
+    }
+    if (createPassword !== createConfirmPassword) {
+      setFeedback({ type: 'error', message: t.auth.passwordsDoNotMatch });
+      return;
+    }
+
     setIsSubmitting(true);
     setFeedback(null);
 
@@ -159,7 +205,8 @@ export const SuperAdminDashboard: React.FC = () => {
         church_name_ar: createChurchNameAr,
         bio_en: createBioEn || 'Parish priest serving holy confessions & spiritual counseling.',
         bio_ar: createBioAr || 'كاهن ومرشد روحي لسر الاعتراف.',
-      } : undefined
+      } : undefined,
+      createPassword
     );
 
     setIsSubmitting(false);
@@ -169,6 +216,33 @@ export const SuperAdminDashboard: React.FC = () => {
       setIsCreateModalOpen(false);
     } else {
       setFeedback({ type: 'error', message: result.error || 'Failed to create user' });
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resettingUser) return;
+    if (newPassword.length < 6) {
+      setFeedback({ type: 'error', message: t.auth.passwordMinLength });
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setFeedback({ type: 'error', message: t.auth.passwordsDoNotMatch });
+      return;
+    }
+
+    setIsResetting(true);
+    setFeedback(null);
+
+    const result = await adminResetPassword(resettingUser.id, newPassword);
+
+    setIsResetting(false);
+
+    if (result.success) {
+      setFeedback({ type: 'success', message: t.adminFlow.passwordResetSuccess });
+      setResettingUser(null);
+    } else {
+      setFeedback({ type: 'error', message: result.error || 'Failed to reset password' });
     }
   };
 
@@ -365,7 +439,7 @@ export const SuperAdminDashboard: React.FC = () => {
                   <div className="flex items-start gap-4">
                     <div className="shrink-0 w-12 h-12 rounded-2xl ring-2 ring-stone-200 overflow-hidden bg-stone-100 flex items-center justify-center">
                       <img
-                        src={user.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100'}
+                        src={user.avatar_url || DEFAULT_SKELETON_AVATAR}
                         alt={user.name}
                         className="w-full h-full object-cover object-center"
                       />
@@ -415,6 +489,15 @@ export const SuperAdminDashboard: React.FC = () => {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+                    <button
+                      onClick={() => handleOpenResetPasswordModal(user)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 text-xs font-bold transition shadow-sm"
+                      title={t.adminFlow.resetPasswordBtn}
+                    >
+                      <KeyRound className="w-3.5 h-3.5 text-amber-700" />
+                      <span>{t.adminFlow.resetPasswordBtn}</span>
+                    </button>
+
                     <button
                       onClick={() => handleOpenEditModal(user)}
                       className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold transition"
@@ -556,6 +639,69 @@ export const SuperAdminDashboard: React.FC = () => {
                     className="w-full p-2.5 rounded-xl border border-stone-300 bg-stone-50"
                   />
                 </div>
+              </div>
+
+              {/* Login Password Setup */}
+              <div className="p-3.5 bg-gold-50/60 rounded-2xl border border-gold-200/80 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-stone-800 flex items-center gap-1.5 text-xs">
+                    <KeyRound className="w-3.5 h-3.5 text-gold-600" />
+                    <span>{t.adminFlow.userPassword} *</span>
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const p = generateRandomPassword();
+                      setCreatePassword(p);
+                      setCreateConfirmPassword(p);
+                      setShowCreatePassword(true);
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-gold-800 hover:text-navy-950 bg-gold-200/60 hover:bg-gold-200 px-2.5 py-1 rounded-lg transition"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>{t.adminFlow.generatePassword}</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="relative">
+                    <input
+                      type={showCreatePassword ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      value={createPassword}
+                      onChange={(e) => setCreatePassword(e.target.value)}
+                      placeholder="Min. 6 chars"
+                      className="w-full p-2.5 pe-9 rounded-xl border border-stone-300 bg-white font-mono text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCreatePassword(!showCreatePassword)}
+                      className="absolute end-2.5 top-2.5 text-stone-400 hover:text-stone-600"
+                    >
+                      {showCreatePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+
+                  <div>
+                    <input
+                      type={showCreatePassword ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      value={createConfirmPassword}
+                      onChange={(e) => setCreateConfirmPassword(e.target.value)}
+                      placeholder={t.adminFlow.confirmPassword}
+                      className="w-full p-2.5 rounded-xl border border-stone-300 bg-white font-mono text-xs"
+                    />
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-stone-500">
+                  {language === 'ar' 
+                    ? 'سيتمكن المستخدم من تسجيل الدخول فوراً بهذا البريد وكلمة المرور دون الحاجة لتأكيد البريد.'
+                    : 'The user will be able to log in directly with this email and password immediately.'}
+                </p>
               </div>
 
               <div>
@@ -889,6 +1035,111 @@ export const SuperAdminDashboard: React.FC = () => {
 
             </form>
 
+          </div>
+        </div>
+      )}
+
+      {/* RESET USER PASSWORD MODAL */}
+      {resettingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-stone-200 flex flex-col">
+            
+            <div className="bg-navy-950 text-white p-5 flex items-center justify-between border-b border-navy-800 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500 text-navy-950 flex items-center justify-center font-bold">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold font-serif text-base">{t.adminFlow.resetPasswordTitle}</h3>
+                  <p className="text-xs text-stone-300">
+                    {language === 'ar' ? (resettingUser.title_ar || resettingUser.name) : (resettingUser.title_en || resettingUser.name)}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setResettingUser(null)} 
+                className="p-1 text-stone-400 hover:text-white transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleResetPasswordSubmit} className="p-6 space-y-4 text-xs">
+              <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 space-y-1 text-stone-700">
+                <p><span className="font-bold">{t.adminFlow.userName}:</span> {resettingUser.name}</p>
+                <p><span className="font-bold">{t.adminFlow.userEmail}:</span> {resettingUser.email}</p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-stone-800">{t.adminFlow.newPasswordLabel} *</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const p = generateRandomPassword();
+                      setNewPassword(p);
+                      setConfirmNewPassword(p);
+                      setShowNewPassword(true);
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-gold-800 hover:text-navy-950 bg-gold-100 hover:bg-gold-200 px-2 py-0.5 rounded-lg transition"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>{t.adminFlow.generatePassword}</span>
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Min. 6 characters"
+                    className="w-full p-2.5 pe-9 rounded-xl border border-stone-300 bg-white text-xs font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute end-2.5 top-2.5 text-stone-400 hover:text-stone-600"
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                <div>
+                  <label className="font-bold text-stone-800 block mb-1">{t.adminFlow.confirmNewPasswordLabel} *</label>
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    placeholder={t.adminFlow.confirmNewPasswordLabel}
+                    className="w-full p-2.5 rounded-xl border border-stone-300 bg-white text-xs font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => setResettingUser(null)}
+                  className="px-4 py-2 rounded-xl text-stone-600 hover:bg-stone-100 font-bold"
+                >
+                  {t.common.cancel}
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isResetting}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-navy-950 font-bold shadow transition flex items-center gap-1.5"
+                >
+                  <KeyRound className="w-4 h-4" />
+                  <span>{isResetting ? t.common.saving : t.adminFlow.resetPasswordBtn}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
