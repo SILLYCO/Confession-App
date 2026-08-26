@@ -831,11 +831,11 @@ CREATE OR REPLACE FUNCTION public.admin_create_user(
     p_password TEXT,
     p_name TEXT,
     p_phone TEXT DEFAULT NULL,
-    p_role user_role DEFAULT 'general',
+    p_role TEXT DEFAULT 'general',
     p_title_en TEXT DEFAULT NULL,
     p_title_ar TEXT DEFAULT NULL,
     p_avatar_url TEXT DEFAULT NULL,
-    p_assigned_priest_ids UUID[] DEFAULT '{}',
+    p_assigned_priest_ids TEXT[] DEFAULT ARRAY[]::TEXT[],
     p_avg_duration INTEGER DEFAULT 15,
     p_church_name_en TEXT DEFAULT 'Saint Mark Church Shobra',
     p_church_name_ar TEXT DEFAULT 'كنيسة الشهيد العظيم مارمرقس بشبرا',
@@ -846,6 +846,9 @@ RETURNS UUID AS $$
 DECLARE
     v_caller_role user_role;
     v_user_id UUID := gen_random_uuid();
+    v_target_role user_role;
+    v_assigned_uuids UUID[] := '{}';
+    v_id_text TEXT;
 BEGIN
     -- Verify caller is super admin
     SELECT role INTO v_caller_role FROM public.users WHERE id = auth.uid();
@@ -853,11 +856,27 @@ BEGIN
         RAISE EXCEPTION 'Unauthorized: Only Super Administrators can create users directly with credentials.';
     END IF;
 
-    IF p_email IS NULL OR p_email = '' THEN
+    IF p_email IS NULL OR trim(p_email) = '' THEN
         RAISE EXCEPTION 'Email is required';
     END IF;
     IF p_password IS NULL OR length(p_password) < 6 THEN
         RAISE EXCEPTION 'Password must be at least 6 characters long';
+    END IF;
+
+    -- Cast target role
+    v_target_role := p_role::user_role;
+
+    -- Cast assigned priest IDs safely
+    IF p_assigned_priest_ids IS NOT NULL AND array_length(p_assigned_priest_ids, 1) > 0 THEN
+        FOREACH v_id_text IN ARRAY p_assigned_priest_ids LOOP
+            IF v_id_text IS NOT NULL AND trim(v_id_text) != '' THEN
+                BEGIN
+                    v_assigned_uuids := array_append(v_assigned_uuids, v_id_text::UUID);
+                EXCEPTION WHEN OTHERS THEN
+                    -- ignore non-uuid
+                END;
+            END IF;
+        END LOOP;
     END IF;
 
     -- 1. Insert into auth.users with encrypted password & auto-confirmed email
@@ -923,14 +942,14 @@ BEGIN
         updated_at
     ) VALUES (
         v_user_id,
-        p_name,
+        trim(p_name),
         lower(trim(p_email)),
         p_phone,
-        p_role,
-        COALESCE(p_title_en, p_name),
-        COALESCE(p_title_ar, p_name),
+        v_target_role,
+        COALESCE(p_title_en, trim(p_name)),
+        COALESCE(p_title_ar, trim(p_name)),
         p_avatar_url,
-        COALESCE(p_assigned_priest_ids, '{}'),
+        v_assigned_uuids,
         NOW(),
         NOW()
     )
@@ -945,7 +964,7 @@ BEGIN
         updated_at = NOW();
 
     -- 4. If role is priest, create priest_profiles and generate initial slots
-    IF p_role = 'priest' THEN
+    IF v_target_role = 'priest' THEN
         INSERT INTO public.priest_profiles (
             priest_id,
             avg_confession_minutes,
@@ -990,12 +1009,13 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION public.admin_reset_user_password(
-    p_target_user_id UUID,
+    p_target_user_id TEXT,
     p_new_password TEXT
 )
 RETURNS BOOLEAN AS $$
 DECLARE
     v_caller_role user_role;
+    v_target_uuid UUID;
 BEGIN
     -- Verify caller is super admin
     SELECT role INTO v_caller_role FROM public.users WHERE id = auth.uid();
@@ -1007,13 +1027,15 @@ BEGIN
         RAISE EXCEPTION 'Password must be at least 6 characters long';
     END IF;
 
+    v_target_uuid := p_target_user_id::UUID;
+
     -- Update encrypted_password in auth.users
     UPDATE auth.users
     SET 
         encrypted_password = crypt(p_new_password, gen_salt('bf')),
         email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
         updated_at = NOW()
-    WHERE id = p_target_user_id;
+    WHERE id = v_target_uuid;
 
     IF NOT FOUND THEN
         RAISE EXCEPTION 'User not found in authentication registry';
@@ -1025,3 +1047,6 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.admin_create_user TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_reset_user_password TO authenticated;
+
+-- Notify PostgREST to reload schema cache immediately
+NOTIFY pgrst, 'reload schema';
