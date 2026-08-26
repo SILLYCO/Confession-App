@@ -215,10 +215,47 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.removeItem(LOCAL_STORAGE_KEY_CURRENT_USER);
   };
 
-  // Synchronize with Supabase Auth state if configured
+  // Synchronize with Supabase Auth state and real database tables
+  const fetchDatabaseFromSupabase = useCallback(async () => {
+    const client = supabase;
+    if (!client || !isSupabaseConfigured) return;
+
+    try {
+      const [
+        { data: usersData },
+        { data: profilesData },
+        { data: bookingsData },
+        { data: notifsData },
+      ] = await Promise.all([
+        client.from('users').select('*'),
+        client.from('priest_profiles').select('*'),
+        client.from('bookings').select('*'),
+        client.from('notification_logs').select('*').order('sent_at', { ascending: false }),
+      ]);
+
+      if (usersData) {
+        setAllUsers(usersData);
+      }
+      if (profilesData) {
+        setPriestProfiles(profilesData);
+      }
+      if (bookingsData) {
+        setBookings(bookingsData);
+      }
+      if (notifsData) {
+        setNotificationLogs(notifsData);
+      }
+    } catch (e) {
+      console.warn('Failed to sync from Supabase:', e);
+    }
+  }, []);
+
   useEffect(() => {
     const client = supabase;
     if (!client || !isSupabaseConfigured) return;
+
+    // Fetch initial database tables from Supabase
+    fetchDatabaseFromSupabase();
 
     client.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -245,6 +282,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (profile) {
           login(profile);
         }
+        fetchDatabaseFromSupabase();
       } else if (event === 'SIGNED_OUT') {
         logout();
       }
@@ -253,7 +291,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchDatabaseFromSupabase]);
 
   const signIn = useCallback(async (email: string, password?: string): Promise<{ success: boolean; error?: string }> => {
     if (supabase && isSupabaseConfigured) {
@@ -1158,6 +1196,11 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return { success: false, error: 'Cannot delete the active logged in admin account' };
       }
 
+      if (supabase && isSupabaseConfigured) {
+        await supabase.from('users').delete().eq('id', userId);
+        await supabase.from('priest_profiles').delete().eq('priest_id', userId);
+      }
+
       setAllUsers(prev => prev.filter(u => u.id !== userId));
       setPriestProfiles(prev => prev.filter(p => p.priest_id !== userId));
       setBookings(prev => prev.filter(b => b.user_id !== userId && b.priest_id !== userId));
@@ -1178,8 +1221,9 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const refreshData = useCallback(() => {
+    fetchDatabaseFromSupabase();
     setBookings(prev => [...prev]);
-  }, []);
+  }, [fetchDatabaseFromSupabase]);
 
   return (
     <AppStoreContext.Provider
