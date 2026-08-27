@@ -469,27 +469,36 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
   }, [priestProfiles, bookings]);
 
+  // Enriched bookings with joined user and priest details
+  const enrichedBookings = useMemo(() => {
+    return bookings.map(b => ({
+      ...b,
+      user: b.user || allUsers.find(u => u.id === b.user_id),
+      priest: b.priest || allUsers.find(u => u.id === b.priest_id),
+    }));
+  }, [bookings, allUsers]);
+
   // Get active upcoming booking for user
   const getUserActiveBooking = useCallback((userId?: string) => {
     const targetId = userId || currentUser?.id;
     if (!targetId) return undefined;
-    return bookings.find(b => {
+    return enrichedBookings.find(b => {
       if (b.user_id !== targetId || b.status !== 'confirmed') return false;
       return !isSlotInPast(b.date, b.start_time);
     });
-  }, [bookings, currentUser]);
+  }, [enrichedBookings, currentUser]);
 
   const getUserBookings = useCallback((userId?: string) => {
     const targetId = userId || currentUser?.id;
     if (!targetId) return [];
-    return bookings.filter(b => b.user_id === targetId);
-  }, [bookings, currentUser]);
+    return enrichedBookings.filter(b => b.user_id === targetId);
+  }, [enrichedBookings, currentUser]);
 
   const getPriestBookings = useCallback((priestId?: string) => {
     const targetId = priestId || currentUser?.id;
     if (!targetId) return [];
-    return bookings.filter(b => b.priest_id === targetId);
-  }, [bookings, currentUser]);
+    return enrichedBookings.filter(b => b.priest_id === targetId);
+  }, [enrichedBookings, currentUser]);
 
   // Send simulated/real email notification
   const logNotification = useCallback((params: {
@@ -518,8 +527,21 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     setNotificationLogs(prev => [newNotif, ...prev]);
 
-    // If Supabase is connected, we can also dispatch to Edge Function in background
+    // If Supabase is connected, persist log & invoke Edge function if configured
     if (isSupabaseConfigured && supabase) {
+      supabase.from('notification_logs').insert({
+        user_id: params.userId,
+        type: params.type,
+        recipient_email: params.recipientEmail,
+        title_en: params.titleEn,
+        title_ar: params.titleAr,
+        body_en: params.bodyEn,
+        body_ar: params.bodyAr,
+        metadata: params.metadata || {},
+        is_read: false,
+        sent_at: newNotif.sent_at,
+      }).then(() => {}, (err: any) => console.log('Notification log insert:', err));
+
       supabase.functions.invoke('send-email-notification', {
         body: {
           to: params.recipientEmail,
@@ -603,8 +625,36 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // Create booking
       const newBookingId = 'book_' + Math.random().toString(36).substring(2, 9);
+      let confirmedBookingId = newBookingId;
+
+      // If Supabase is connected, insert into real database
+      if (supabase && isSupabaseConfigured) {
+        const { data: dbBooking, error: bookingErr } = await supabase
+          .from('bookings')
+          .insert({
+            user_id: targetUserId,
+            priest_id: priestId,
+            slot_id: slotId,
+            date: date,
+            start_time: startTime,
+            end_time: endTime,
+            status: 'confirmed',
+            notes: notes || null,
+          })
+          .select()
+          .single();
+
+        if (bookingErr) {
+          console.error('Supabase booking insert error:', bookingErr);
+          return { success: false, error: bookingErr.message };
+        }
+        if (dbBooking) {
+          confirmedBookingId = dbBooking.id;
+        }
+      }
+
       const newBooking: Booking = {
-        id: newBookingId,
+        id: confirmedBookingId,
         user_id: targetUserId,
         priest_id: priestId,
         slot_id: slotId,
@@ -639,7 +689,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           bodyEn: `Your confession appointment with ${priest?.title_en || priest?.name || 'the Priest'} is confirmed for ${date} at ${startTime}.`,
           bodyAr: `تم تأكيد موعد سر الاعتراف مع ${priest?.title_ar || priest?.name || 'أبونا'} يوم ${date} الساعة ${startTime}.`,
           metadata: {
-            bookingId: newBookingId,
+            bookingId: confirmedBookingId,
             priestName: priest?.name,
             date,
             time: startTime,
@@ -691,6 +741,23 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             success: false, 
             error: 'CUTOFF_EXCEEDED: Cancellations within 2 hours of the slot must be handled by the Church Secretary.' 
           };
+        }
+      }
+
+      // If Supabase is connected, update database
+      if (supabase && isSupabaseConfigured) {
+        const { error: cancelErr } = await supabase
+          .from('bookings')
+          .update({
+            status: 'cancelled',
+            cancellation_reason: reason,
+            cancelled_by: cancelledByUserId,
+            cancelled_at: new Date().toISOString(),
+          })
+          .eq('id', bookingId);
+
+        if (cancelErr) {
+          console.error('Supabase cancel booking error:', cancelErr);
         }
       }
 
@@ -751,6 +818,23 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return { success: false, error: 'Booking not found' };
       }
 
+      // If Supabase is connected, update database
+      if (supabase && isSupabaseConfigured) {
+        const { error: attErr } = await supabase
+          .from('bookings')
+          .update({
+            status: newStatus,
+            attendance_notes: attendanceNotes !== undefined ? attendanceNotes : targetBooking.attendance_notes,
+            completed_at: newStatus === 'completed' ? new Date().toISOString() : null,
+            cancellation_reason: newStatus === 'no_show' ? 'no_show' : targetBooking.cancellation_reason,
+          })
+          .eq('id', bookingId);
+
+        if (attErr) {
+          console.error('Supabase attendance update error:', attErr);
+        }
+      }
+
       const updatedBookings = bookings.map(b => {
         if (b.id === bookingId) {
           return {
@@ -766,6 +850,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       setBookings(updatedBookings);
       return { success: true };
+
     } catch (err: any) {
       return { success: false, error: err.message || 'Failed to update attendance' };
     }
@@ -910,6 +995,31 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return p;
       }));
 
+      // If Supabase is connected, persist schedule changes
+      if (supabase && isSupabaseConfigured) {
+        await supabase
+          .from('priest_profiles')
+          .update({
+            avg_confession_minutes: avgMinutes,
+            weekly_schedule: weeklySchedule,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('priest_id', priestId);
+
+        if (cancelledBookingIds.size > 0) {
+          const idsArray = Array.from(cancelledBookingIds);
+          await supabase
+            .from('bookings')
+            .update({
+              status: 'cancelled',
+              cancellation_reason: 'priest_schedule_change',
+              cancelled_by: currentUser.id,
+              cancelled_at: new Date().toISOString(),
+            })
+            .in('id', idsArray);
+        }
+      }
+
       return { 
         success: true, 
         preservedCount: impact.preservedBookings.length, 
@@ -979,38 +1089,81 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }));
       }
 
+      const targetProfile = priestProfiles.find(p => p.priest_id === priestId);
+      const filteredOverrides = (targetProfile?.schedule_overrides || []).filter(o => o.date !== override.date);
+      const newOverrides = [...filteredOverrides, override];
+
       setPriestProfiles(prev => prev.map(p => {
         if (p.priest_id === priestId) {
-          const filtered = p.schedule_overrides.filter(o => o.date !== override.date);
           return {
             ...p,
-            schedule_overrides: [...filtered, override],
+            schedule_overrides: newOverrides,
             updated_at: new Date().toISOString(),
           };
         }
         return p;
       }));
 
+      // If Supabase is connected, update database
+      if (supabase && isSupabaseConfigured) {
+        await supabase
+          .from('priest_profiles')
+          .update({
+            schedule_overrides: newOverrides,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('priest_id', priestId);
+
+        if (override.isUnavailable) {
+          await supabase
+            .from('bookings')
+            .update({
+              status: 'cancelled',
+              cancellation_reason: 'priest_unavailable',
+              cancelled_by: currentUser.id,
+              cancelled_at: new Date().toISOString(),
+            })
+            .eq('priest_id', priestId)
+            .eq('date', override.date)
+            .eq('status', 'confirmed');
+        }
+      }
+
       return { success: true, cancelledCount };
 
     } catch (err: any) {
       return { success: false, cancelledCount: 0, error: err.message || 'Failed to add override' };
     }
-  }, [currentUser, allUsers, bookings, logNotification]);
+  }, [currentUser, allUsers, bookings, priestProfiles, logNotification]);
 
   const deletePriestOverride = useCallback(async (priestId: string, overrideId: string) => {
+    const targetProfile = priestProfiles.find(p => p.priest_id === priestId);
+    const filteredOverrides = (targetProfile?.schedule_overrides || []).filter(o => o.id !== overrideId);
+
     setPriestProfiles(prev => prev.map(p => {
       if (p.priest_id === priestId) {
         return {
           ...p,
-          schedule_overrides: p.schedule_overrides.filter(o => o.id !== overrideId),
+          schedule_overrides: filteredOverrides,
           updated_at: new Date().toISOString(),
         };
       }
       return p;
     }));
+
+    // If Supabase is connected, update database
+    if (supabase && isSupabaseConfigured) {
+      await supabase
+        .from('priest_profiles')
+        .update({
+          schedule_overrides: filteredOverrides,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('priest_id', priestId);
+    }
+
     return { success: true };
-  }, []);
+  }, [priestProfiles]);
 
   // ----------------------------------------------------------------------------
   // Priest Profile Self-Update (Avatar, Name, Titles, Bio, Church)
@@ -1023,6 +1176,22 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       if (!currentUser || (currentUser.role !== 'priest' && currentUser.role !== 'admin')) {
         return { success: false, error: 'Unauthorized: Only priest or admin can edit this profile' };
+      }
+
+      // If Supabase is connected, update database
+      if (supabase && isSupabaseConfigured) {
+        if (Object.keys(userUpdates).length > 0) {
+          await supabase
+            .from('users')
+            .update({ ...userUpdates, updated_at: new Date().toISOString() })
+            .eq('id', priestId);
+        }
+        if (Object.keys(profileUpdates).length > 0) {
+          await supabase
+            .from('priest_profiles')
+            .update({ ...profileUpdates, updated_at: new Date().toISOString() })
+            .eq('priest_id', priestId);
+        }
       }
 
       setAllUsers(prev => prev.map(u => {
@@ -1232,6 +1401,33 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         });
       }
 
+      // If Supabase is configured, persist user and profile updates
+      if (supabase && isSupabaseConfigured) {
+        await supabase
+          .from('users')
+          .update({
+            name: updates.name,
+            phone: updates.phone,
+            role: updates.role,
+            title_en: updates.title_en,
+            title_ar: updates.title_ar,
+            avatar_url: updates.avatar_url,
+            assigned_priest_ids: updates.assigned_priest_ids,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userId);
+
+        if (updates.role === 'priest' || priestProfileData) {
+          await supabase
+            .from('priest_profiles')
+            .upsert({
+              priest_id: userId,
+              ...(priestProfileData || {}),
+              updated_at: new Date().toISOString()
+            });
+        }
+      }
+
       return { success: true };
 
     } catch (err: any) {
@@ -1267,11 +1463,25 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const markNotificationAsRead = useCallback((notificationId: string) => {
     setNotificationLogs(prev => prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n));
+    if (supabase && isSupabaseConfigured) {
+      supabase
+        .from('notification_logs')
+        .update({ is_read: true })
+        .eq('id', notificationId)
+        .then(() => {}, () => {});
+    }
   }, []);
 
   const markAllNotificationsAsRead = useCallback(() => {
     setNotificationLogs(prev => prev.map(n => ({ ...n, is_read: true })));
-  }, []);
+    if (supabase && isSupabaseConfigured && currentUser) {
+      supabase
+        .from('notification_logs')
+        .update({ is_read: true })
+        .eq('user_id', currentUser.id)
+        .then(() => {}, () => {});
+    }
+  }, [currentUser]);
 
   const refreshData = useCallback(() => {
     fetchDatabaseFromSupabase();

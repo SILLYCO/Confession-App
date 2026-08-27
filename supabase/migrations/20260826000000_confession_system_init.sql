@@ -71,10 +71,10 @@ CREATE TABLE IF NOT EXISTS public.slots (
 
 -- 5. Bookings Table
 CREATE TABLE IF NOT EXISTS public.bookings (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     priest_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-    slot_id UUID NOT NULL REFERENCES public.slots(id) ON DELETE CASCADE,
+    slot_id TEXT NOT NULL,
     date DATE NOT NULL,
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
@@ -88,16 +88,11 @@ CREATE TABLE IF NOT EXISTS public.bookings (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Add foreign key back to slots for booking_id
-ALTER TABLE public.slots
-    DROP CONSTRAINT IF EXISTS fk_slots_booking,
-    ADD CONSTRAINT fk_slots_booking FOREIGN KEY (booking_id) REFERENCES public.bookings(id) ON DELETE SET NULL;
-
 -- 6. Notification Logs Table (Tracks emails and notifications sent)
 CREATE TABLE IF NOT EXISTS public.notification_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-    type TEXT NOT NULL, -- booking_confirmed, booking_cancelled_by_user, booking_cancelled_by_secretary, booking_force_cancelled_schedule_change, booking_force_cancelled_priest_unavailable
+    type TEXT NOT NULL,
     recipient_email TEXT NOT NULL,
     title_en TEXT NOT NULL,
     title_ar TEXT NOT NULL,
@@ -138,16 +133,21 @@ CREATE POLICY "Users are readable by authenticated users"
     TO authenticated
     USING (true);
 
-CREATE POLICY "Users can update their own profile"
+CREATE POLICY "Users can update their own profile or admin/secretary update"
     ON public.users FOR UPDATE
     TO authenticated
-    USING (id = auth.uid())
-    WITH CHECK (id = auth.uid());
+    USING (id = auth.uid() OR public.current_user_role() IN ('secretary', 'admin'))
+    WITH CHECK (id = auth.uid() OR public.current_user_role() IN ('secretary', 'admin'));
 
-CREATE POLICY "Secretaries can insert users"
+CREATE POLICY "Users can insert self or admin/secretary create"
     ON public.users FOR INSERT
     TO authenticated
-    WITH CHECK (public.current_user_role() = 'secretary' OR id = auth.uid());
+    WITH CHECK (public.current_user_role() IN ('secretary', 'admin') OR id = auth.uid());
+
+CREATE POLICY "Super admin can delete users"
+    ON public.users FOR DELETE
+    TO authenticated
+    USING (public.current_user_role() = 'admin');
 
 -- Priest Profiles RLS
 CREATE POLICY "Priest profiles are viewable by all authenticated users"
@@ -155,16 +155,16 @@ CREATE POLICY "Priest profiles are viewable by all authenticated users"
     TO authenticated
     USING (true);
 
-CREATE POLICY "Priests can update only their own profile"
+CREATE POLICY "Priests and admins can update priest profile"
     ON public.priest_profiles FOR UPDATE
     TO authenticated
-    USING (priest_id = auth.uid() AND public.current_user_role() = 'priest')
-    WITH CHECK (priest_id = auth.uid() AND public.current_user_role() = 'priest');
+    USING (priest_id = auth.uid() OR public.current_user_role() IN ('secretary', 'admin'))
+    WITH CHECK (priest_id = auth.uid() OR public.current_user_role() IN ('secretary', 'admin'));
 
-CREATE POLICY "Priests can insert their own profile"
+CREATE POLICY "Priests and admins can insert priest profile"
     ON public.priest_profiles FOR INSERT
     TO authenticated
-    WITH CHECK (priest_id = auth.uid() OR public.current_user_role() = 'secretary');
+    WITH CHECK (priest_id = auth.uid() OR public.current_user_role() IN ('secretary', 'admin'));
 
 -- Slots RLS
 CREATE POLICY "Slots are viewable by all authenticated users"
@@ -172,36 +172,47 @@ CREATE POLICY "Slots are viewable by all authenticated users"
     TO authenticated
     USING (true);
 
-CREATE POLICY "Priests can update their own slots"
+CREATE POLICY "Priests and admins can manage slots"
     ON public.slots FOR ALL
     TO authenticated
-    USING (priest_id = auth.uid() OR public.current_user_role() = 'secretary')
-    WITH CHECK (priest_id = auth.uid() OR public.current_user_role() = 'secretary');
+    USING (priest_id = auth.uid() OR public.current_user_role() IN ('secretary', 'admin'))
+    WITH CHECK (priest_id = auth.uid() OR public.current_user_role() IN ('secretary', 'admin'));
 
 -- Bookings RLS
-CREATE POLICY "General users can view their own bookings"
+CREATE POLICY "Bookings are viewable by all authenticated users"
     ON public.bookings FOR SELECT
     TO authenticated
-    USING (
-        user_id = auth.uid() 
-        OR priest_id = auth.uid() 
-        OR public.current_user_role() = 'secretary'
-    );
+    USING (true);
 
 CREATE POLICY "Users and secretaries can insert bookings"
     ON public.bookings FOR INSERT
     TO authenticated
     WITH CHECK (
         user_id = auth.uid() 
-        OR public.current_user_role() = 'secretary'
+        OR public.current_user_role() IN ('secretary', 'admin')
     );
 
-CREATE POLICY "Users and secretaries can update bookings"
+CREATE POLICY "Users, priests, and secretaries can update bookings"
     ON public.bookings FOR UPDATE
     TO authenticated
     USING (
         user_id = auth.uid() 
-        OR public.current_user_role() = 'secretary'
+        OR priest_id = auth.uid() 
+        OR public.current_user_role() IN ('secretary', 'admin')
+    )
+    WITH CHECK (
+        user_id = auth.uid() 
+        OR priest_id = auth.uid() 
+        OR public.current_user_role() IN ('secretary', 'admin')
+    );
+
+CREATE POLICY "Users, priests, and secretaries can delete bookings"
+    ON public.bookings FOR DELETE
+    TO authenticated
+    USING (
+        user_id = auth.uid() 
+        OR priest_id = auth.uid() 
+        OR public.current_user_role() IN ('secretary', 'admin')
     );
 
 -- Notification Logs RLS
@@ -210,7 +221,7 @@ CREATE POLICY "Users can view their own notifications"
     TO authenticated
     USING (
         user_id = auth.uid() 
-        OR public.current_user_role() = 'secretary'
+        OR public.current_user_role() IN ('secretary', 'admin')
     );
 
 CREATE POLICY "Users can update their own notification read status"
@@ -219,7 +230,7 @@ CREATE POLICY "Users can update their own notification read status"
     USING (user_id = auth.uid())
     WITH CHECK (user_id = auth.uid());
 
-CREATE POLICY "Service can insert notifications"
+CREATE POLICY "Service and authenticated users can insert notifications"
     ON public.notification_logs FOR INSERT
     TO authenticated
     WITH CHECK (true);
