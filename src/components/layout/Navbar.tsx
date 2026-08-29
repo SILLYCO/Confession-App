@@ -15,7 +15,10 @@ import {
   Menu, 
   X,
   LogOut,
-  Crown
+  Crown,
+  LayoutDashboard,
+  Users,
+  History
 } from 'lucide-react';
 import { DEFAULT_SKELETON_AVATAR } from '../../types/database';
 
@@ -90,17 +93,43 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             {/* Navigation Tabs (Desktop) */}
             <nav className="hidden md:flex items-center gap-1 lg:gap-1.5 shrink-0">
               {currentUser.role === 'admin' && (
-                <button
-                  onClick={() => handleTabClick('admin_users')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition ${
-                    activeTab === 'admin_users'
-                      ? 'bg-navy-900 text-gold-400 shadow-sm'
-                      : 'text-stone-700 hover:bg-stone-100'
-                  }`}
-                >
-                  <Crown className="w-4 h-4 text-gold-400 shrink-0" />
-                  <span>{t.nav.adminDashboard}</span>
-                </button>
+                <>
+                  <button
+                    onClick={() => handleTabClick('admin_overview')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition ${
+                      activeTab === 'admin_overview'
+                        ? 'bg-navy-900 text-gold-400 shadow-sm'
+                        : 'text-stone-700 hover:bg-stone-100'
+                    }`}
+                  >
+                    <LayoutDashboard className="w-4 h-4 text-gold-400 shrink-0" />
+                    <span>{t.nav.adminOverview}</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleTabClick('admin_users')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition ${
+                      activeTab === 'admin_users'
+                        ? 'bg-navy-900 text-gold-400 shadow-sm'
+                        : 'text-stone-700 hover:bg-stone-100'
+                    }`}
+                  >
+                    <Users className="w-4 h-4 text-gold-400 shrink-0" />
+                    <span>{t.nav.adminUsers}</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleTabClick('admin_audit_logs')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition ${
+                      activeTab === 'admin_audit_logs'
+                        ? 'bg-navy-900 text-gold-400 shadow-sm'
+                        : 'text-stone-700 hover:bg-stone-100'
+                    }`}
+                  >
+                    <History className="w-4 h-4 text-gold-400 shrink-0" />
+                    <span>{t.nav.adminAuditLogs}</span>
+                  </button>
+                </>
               )}
 
               {currentUser.role === 'general' && (
@@ -284,15 +313,35 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
             </div>
 
             {currentUser.role === 'admin' && (
-              <button
-                onClick={() => { handleTabClick('admin_users'); setMobileMenuOpen(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
-                  activeTab === 'admin_users' ? 'bg-navy-900 text-gold-400 font-bold' : 'text-stone-700'
-                }`}
-              >
-                <Crown className="w-4 h-4 text-gold-400" />
-                <span>{t.nav.adminDashboard}</span>
-              </button>
+              <>
+                <button
+                  onClick={() => { handleTabClick('admin_overview'); setMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
+                    activeTab === 'admin_overview' ? 'bg-navy-900 text-gold-400 font-bold' : 'text-stone-700'
+                  }`}
+                >
+                  <LayoutDashboard className="w-4 h-4 text-gold-400" />
+                  <span>{t.nav.adminOverview}</span>
+                </button>
+                <button
+                  onClick={() => { handleTabClick('admin_users'); setMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
+                    activeTab === 'admin_users' ? 'bg-navy-900 text-gold-400 font-bold' : 'text-stone-700'
+                  }`}
+                >
+                  <Users className="w-4 h-4 text-gold-400" />
+                  <span>{t.nav.adminUsers}</span>
+                </button>
+                <button
+                  onClick={() => { handleTabClick('admin_audit_logs'); setMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
+                    activeTab === 'admin_audit_logs' ? 'bg-navy-900 text-gold-400 font-bold' : 'text-stone-700'
+                  }`}
+                >
+                  <History className="w-4 h-4 text-gold-400" />
+                  <span>{t.nav.adminAuditLogs}</span>
+                </button>
+              </>
             )}
 
             {currentUser.role === 'general' && (

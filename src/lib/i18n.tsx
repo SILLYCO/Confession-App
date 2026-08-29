@@ -22,6 +22,9 @@ export interface Translations {
     priestProfile: string;
     secretaryDashboard: string;
     adminDashboard: string;
+    adminOverview: string;
+    adminUsers: string;
+    adminAuditLogs: string;
     notifications: string;
     login: string;
     logout: string;
@@ -63,6 +66,42 @@ export interface Translations {
     totalPriests: string;
     totalSecretaries: string;
     totalMembers: string;
+    monitoringTitle: string;
+    monitoringSubtitle: string;
+    totalBookings: string;
+    todayBookings: string;
+    weekBookings: string;
+    attendanceRate: string;
+    priestCapacitiesTitle: string;
+    priestCapacitiesDesc: string;
+    recentActivityTitle: string;
+    recentActivityDesc: string;
+    quickActions: string;
+    addPriestWizard: string;
+    addSecretaryOrUser: string;
+    openUserDirectory: string;
+    auditLogTitle: string;
+    auditLogSubtitle: string;
+    userDetailsTitle: string;
+    confessionHistory: string;
+    noConfessionsYet: string;
+    assignedFathers: string;
+    priestProfileDetails: string;
+    weeklyWindowsTitle: string;
+    totalConfessionsHeard: string;
+    viewDetails: string;
+    filterEvents: string;
+    allEvents: string;
+    bookingEvents: string;
+    cancellationEvents: string;
+    attendanceEvents: string;
+    notificationEvents: string;
+    wizardStep1: string;
+    wizardStep2: string;
+    wizardStep3: string;
+    wizardStep4: string;
+    addAvailabilityWindow: string;
+    noWindowsConfigured: string;
     createUserBtn: string;
     createUserTitle: string;
     editUserTitle: string;
@@ -284,6 +323,9 @@ const translations: Record<Language, Translations> = {
       priestProfile: "Profile",
       secretaryDashboard: "Secretary Operations",
       adminDashboard: "Super Admin",
+      adminOverview: "System Overview",
+      adminUsers: "User Directory",
+      adminAuditLogs: "Audit Log",
       notifications: "Notifications",
       login: "Sign In",
       logout: "Sign Out",
@@ -320,11 +362,47 @@ const translations: Record<Language, Translations> = {
     },
     adminFlow: {
       title: "Super Admin Control Center",
-      subtitle: "Create users, assign roles, configure secretary-priest assignments, and manage system accounts.",
+      subtitle: "Monitor confession system health, oversee parish operations, and manage user accounts.",
       totalUsers: "Total Users",
       totalPriests: "Priests",
       totalSecretaries: "Secretaries",
       totalMembers: "Congregation Members",
+      monitoringTitle: "Parish Confession System Monitoring",
+      monitoringSubtitle: "Real-time overview of parish operations, confession capacities, and sacrament metrics.",
+      totalBookings: "Total Bookings",
+      todayBookings: "Bookings Today",
+      weekBookings: "Bookings This Week",
+      attendanceRate: "Sacrament Completion Rate",
+      priestCapacitiesTitle: "Priests Confession Capacity & Load",
+      priestCapacitiesDesc: "Live breakdown of Father's configured schedule, slot duration, and current reservations.",
+      recentActivityTitle: "Live Parish Activity Stream",
+      recentActivityDesc: "Real-time chronological log of appointments, cancellations, and sacrament completions.",
+      quickActions: "Quick Administrative Actions",
+      addPriestWizard: "Add New Priest (Full Setup)",
+      addSecretaryOrUser: "Add Secretary or Member",
+      openUserDirectory: "Open User Directory",
+      auditLogTitle: "System Audit Log & Activity Timeline",
+      auditLogSubtitle: "Comprehensive chronological record of bookings, cancellations, attendance, and notifications.",
+      userDetailsTitle: "User Profile & Sacrament Details",
+      confessionHistory: "Confession Sacrament History",
+      noConfessionsYet: "No confession appointments recorded for this member yet.",
+      assignedFathers: "Assigned Confession Fathers",
+      priestProfileDetails: "Pastoral Profile & Schedule Windows",
+      weeklyWindowsTitle: "Configured Weekly Availability Windows",
+      totalConfessionsHeard: "Confessions Heard",
+      viewDetails: "View Profile",
+      filterEvents: "Filter Events",
+      allEvents: "All Events",
+      bookingEvents: "Bookings",
+      cancellationEvents: "Cancellations",
+      attendanceEvents: "Attendance",
+      notificationEvents: "Notifications",
+      wizardStep1: "1. Priest Identification",
+      wizardStep2: "2. Church & Pastoral Bio",
+      wizardStep3: "3. Confession Duration & Slots",
+      wizardStep4: "4. Weekly Availability Schedule",
+      addAvailabilityWindow: "Add Availability Window",
+      noWindowsConfigured: "No weekly availability windows added yet.",
       createUserBtn: "Create New User",
       createUserTitle: "Create System User",
       editUserTitle: "Edit User & Role Assignment",
@@ -544,6 +622,9 @@ const translations: Record<Language, Translations> = {
       priestProfile: "الملف الشخصي",
       secretaryDashboard: "إدارة السكرتارية",
       adminDashboard: "لوحة تحكم المدير",
+      adminOverview: "نظرة عامة ومراقبة النظام",
+      adminUsers: "سجل المستخدمين",
+      adminAuditLogs: "سجل العمليات والرقابة",
       notifications: "الإشعارات والرسائل",
       login: "تسجيل الدخول",
       logout: "تسجيل الخروج",
@@ -580,11 +661,47 @@ const translations: Record<Language, Translations> = {
     },
     adminFlow: {
       title: "مركز إدارة النظام والمستخدمين (سوبر أدمن)",
-      subtitle: "إنشاء المستخدمين، تعيين الصلاحيات والأدوار، وإضافة الصور، وربط السكرتارية بالآباء الكهنة.",
+      subtitle: "متابعة كفاءة وجداول سر الاعتراف، الإشراف على العمليات، وإدارة حسابات الكنيسة.",
       totalUsers: "إجمالي المستخدمين",
       totalPriests: "الآباء الكهنة",
       totalSecretaries: "السكرتارية",
       totalMembers: "شعب الكنيسة",
+      monitoringTitle: "لوحة مراقبة وإحصائيات سر الاعتراف",
+      monitoringSubtitle: "نظرة عامة فورية على عمليات الرعاية، طاقات الآباء الكهنة، ومؤشرات خدمة سر الاعتراف.",
+      totalBookings: "إجمالي الحجوزات",
+      todayBookings: "حجوزات اليوم",
+      weekBookings: "حجوزات هذا الأسبوع",
+      attendanceRate: "نسبة إتمام نوال السر",
+      priestCapacitiesTitle: "طاقة وجداول الآباء الكهنة",
+      priestCapacitiesDesc: "تفاصيل الجداول الأسبوعية، مدة الجلسة، ونسبة حجز المواعيد المتاحة لكل أب كاهن.",
+      recentActivityTitle: "سجل النشاط المباشر بالكنيسة",
+      recentActivityDesc: "سجل فوري زمني للحجوزات، الإلغاءات، ونوال سر الاعتراف المقدس.",
+      quickActions: "إجراءات إدارية سريعة",
+      addPriestWizard: "إضافة كاهن جديد (إعداد شامل)",
+      addSecretaryOrUser: "إضافة أمين سر أو فرد من الشعب",
+      openUserDirectory: "فتح سجل المستخدمين",
+      auditLogTitle: "سجل العمليات والرقابة على النظام",
+      auditLogSubtitle: "سجل زمني شامل وتفصيلي لكافة الحجوزات، الإلغاءات، إثبات الحضور، والإشعارات.",
+      userDetailsTitle: "تفاصيل الحساب وسجل الاعترافات",
+      confessionHistory: "سجل مواعيد وسر الاعتراف",
+      noConfessionsYet: "لا توجد مواعيد اعتراف مسجلة لهذا العضو بعد.",
+      assignedFathers: "الآباء الكهنة المسندون",
+      priestProfileDetails: "بيانات الخدمة وجداول التواجد",
+      weeklyWindowsTitle: "فترات التواجد الأسبوعية الثابتة",
+      totalConfessionsHeard: "اعترافات مسموعة",
+      viewDetails: "عرض الملف الشخصي",
+      filterEvents: "تصفية العمليات",
+      allEvents: "كافة العمليات",
+      bookingEvents: "الحجوزات",
+      cancellationEvents: "الإلغاءات",
+      attendanceEvents: "إثبات الحضور",
+      notificationEvents: "الإشعارات",
+      wizardStep1: "١. بيانات الكاهن والحساب",
+      wizardStep2: "٢. الكنيسة والخدمة الرعوية",
+      wizardStep3: "٣. مدة جلسة الاعتراف",
+      wizardStep4: "٤. جدول المواعيد الأسبوعي",
+      addAvailabilityWindow: "إضافة فترة تواجد",
+      noWindowsConfigured: "لم يتم إضافة فترات تواجد أسبوعية بعد.",
       createUserBtn: "إنشاء مستخدم جديد",
       createUserTitle: "إضافة مستخدم جديد للنظام",
       editUserTitle: "تعديل بيانات المستخدم والصلاحية",

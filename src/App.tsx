@@ -26,7 +26,7 @@ const MainAppContent: React.FC = () => {
   useEffect(() => {
     if (!currentUser) return;
     if (currentUser.role === 'admin') {
-      setActiveTab('admin_users');
+      setActiveTab('admin_overview');
     } else if (currentUser.role === 'priest') {
       setActiveTab('priest_schedule');
     } else if (currentUser.role === 'secretary') {
@@ -51,7 +51,10 @@ const MainAppContent: React.FC = () => {
         
         {/* Super Admin Dashboard */}
         {currentUser.role === 'admin' && (
-          <SuperAdminDashboard />
+          <SuperAdminDashboard
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
         )}
 
         {/* General User (Member) Views */}
