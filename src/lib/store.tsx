@@ -7,7 +7,10 @@ import {
   NotificationLog, 
   WeeklyScheduleItem, 
   ScheduleOverride,
-  DEFAULT_SKELETON_AVATAR 
+  DEFAULT_SKELETON_AVATAR,
+  ParishAnnouncement,
+  AnnouncementPriority,
+  AnnouncementAudience
 } from '../types/database';
 import { 
   MOCK_USERS, 
@@ -110,6 +113,14 @@ interface AppStoreContextType {
   deleteUser: (userId: string) => Promise<{ success: boolean; error?: string }>;
   adminResetPassword: (userId: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
 
+  // Parish Broadcasts & Announcements
+  announcements: ParishAnnouncement[];
+  createAnnouncement: (data: Omit<ParishAnnouncement, 'id' | 'created_at'>) => Promise<{ success: boolean; announcement?: ParishAnnouncement; error?: string }>;
+  updateAnnouncement: (id: string, updates: Partial<ParishAnnouncement>) => Promise<{ success: boolean; error?: string }>;
+  deleteAnnouncement: (id: string) => Promise<{ success: boolean; error?: string }>;
+  toggleAnnouncementActive: (id: string) => Promise<{ success: boolean; error?: string }>;
+  getActiveAnnouncementsForUser: (userRole?: string) => ParishAnnouncement[];
+
   markNotificationAsRead: (notificationId: string) => void;
   markAllNotificationsAsRead: () => void;
   refreshData: () => void;
@@ -122,6 +133,32 @@ const LOCAL_STORAGE_KEY_PROFILES = 'confession_system_profiles_v3';
 const LOCAL_STORAGE_KEY_BOOKINGS = 'confession_system_bookings_v3';
 const LOCAL_STORAGE_KEY_NOTIFS = 'confession_system_notifs_v3';
 const LOCAL_STORAGE_KEY_CURRENT_USER = 'confession_system_current_user_v3';
+const LOCAL_STORAGE_KEY_ANNOUNCEMENTS = 'confession_system_announcements_v3';
+
+const INITIAL_MOCK_ANNOUNCEMENTS: ParishAnnouncement[] = [
+  {
+    id: 'ann_1',
+    title_ar: 'مواعيد سر الاعتراف خلال فترة الصوم المقدس والأعياد',
+    title_en: 'Sacrament of Holy Confession Schedule During Holy Feasts & Fasts',
+    content_ar: 'تعلن الكنيسة لشعبها المبارك بضرورة الالتزام بحجز مواعيد الاعتراف مسبقاً عبر المنظومة. نرجو الحضور قبل الموعد بـ 10 دقائق حرصاً على راحة الجميع.',
+    content_en: 'The Church invites all congregation members to reserve their confession appointments in advance through the online portal. Please arrive 10 minutes before your slot.',
+    priority: 'important',
+    target_audience: 'all',
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'ann_2',
+    title_ar: 'تنبيه خاص بمواعيد القداسات والخدمة الأسبوعية',
+    title_en: 'Notice Regarding Weekly Liturgy & Pastoral Services',
+    content_ar: 'القداس الإلهي يبدأ أيام الأحد والأربعاء والجمعة. مواعيد اعترافات الآباء الكهنة متاحة بالجدول الأسبوعي بعد القداس مباشرة.',
+    content_en: 'Holy Liturgy is served Sundays, Wednesdays, and Fridays. Confession appointments with Church Fathers follow immediately as scheduled.',
+    priority: 'normal',
+    target_audience: 'all',
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
+];
 
 export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Initialize state from local storage or mock data
@@ -156,10 +193,19 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return saved ? JSON.parse(saved) : INITIAL_MOCK_NOTIFICATIONS;
   });
 
+  const [announcements, setAnnouncements] = useState<ParishAnnouncement[]>(() => {
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY_ANNOUNCEMENTS);
+    return saved ? JSON.parse(saved) : INITIAL_MOCK_ANNOUNCEMENTS;
+  });
+
   // Sync to localStorage
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY_USERS, JSON.stringify(allUsers));
   }, [allUsers]);
+
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEY_ANNOUNCEMENTS, JSON.stringify(announcements));
+  }, [announcements]);
 
   useEffect(() => {
     if (currentUser) {
@@ -1461,6 +1507,103 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [currentUser]);
 
+  // Parish Broadcasts Actions
+  const createAnnouncement = useCallback(async (data: Omit<ParishAnnouncement, 'id' | 'created_at'>) => {
+    try {
+      const newAnn: ParishAnnouncement = {
+        ...data,
+        id: 'ann_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+        created_by: currentUser?.id,
+        created_at: new Date().toISOString(),
+      };
+
+      setAnnouncements(prev => [newAnn, ...prev]);
+
+      if (supabase && isSupabaseConfigured) {
+        supabase
+          .from('parish_announcements')
+          .insert([newAnn])
+          .then(() => {}, () => {});
+      }
+
+      return { success: true, announcement: newAnn };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to create announcement' };
+    }
+  }, [currentUser]);
+
+  const updateAnnouncement = useCallback(async (id: string, updates: Partial<ParishAnnouncement>) => {
+    try {
+      setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+
+      if (supabase && isSupabaseConfigured) {
+        supabase
+          .from('parish_announcements')
+          .update(updates)
+          .eq('id', id)
+          .then(() => {}, () => {});
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to update announcement' };
+    }
+  }, []);
+
+  const deleteAnnouncement = useCallback(async (id: string) => {
+    try {
+      setAnnouncements(prev => prev.filter(a => a.id !== id));
+
+      if (supabase && isSupabaseConfigured) {
+        supabase
+          .from('parish_announcements')
+          .delete()
+          .eq('id', id)
+          .then(() => {}, () => {});
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to delete announcement' };
+    }
+  }, []);
+
+  const toggleAnnouncementActive = useCallback(async (id: string) => {
+    try {
+      let nextState = false;
+      setAnnouncements(prev => prev.map(a => {
+        if (a.id === id) {
+          nextState = !a.is_active;
+          return { ...a, is_active: nextState };
+        }
+        return a;
+      }));
+
+      if (supabase && isSupabaseConfigured) {
+        supabase
+          .from('parish_announcements')
+          .update({ is_active: nextState })
+          .eq('id', id)
+          .then(() => {}, () => {});
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to toggle announcement' };
+    }
+  }, []);
+
+  const getActiveAnnouncementsForUser = useCallback((userRole?: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    return announcements.filter(a => {
+      if (!a.is_active) return false;
+      if (a.start_date && a.start_date > today) return false;
+      if (a.end_date && a.end_date < today) return false;
+      if (a.target_audience !== 'all' && userRole && a.target_audience !== userRole) return false;
+      return true;
+    });
+  }, [announcements]);
+
   const markNotificationAsRead = useCallback((notificationId: string) => {
     setNotificationLogs(prev => prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n));
     if (supabase && isSupabaseConfigured) {
@@ -1531,6 +1674,12 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updateUser,
         deleteUser,
         adminResetPassword,
+        announcements,
+        createAnnouncement,
+        updateAnnouncement,
+        deleteAnnouncement,
+        toggleAnnouncementActive,
+        getActiveAnnouncementsForUser,
         markNotificationAsRead,
         markAllNotificationsAsRead,
         refreshData,

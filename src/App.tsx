@@ -11,6 +11,7 @@ import { UserBookingsHistory } from './components/user/UserBookingsHistory';
 import { PriestDashboard } from './components/priest/PriestDashboard';
 import { SecretaryDashboard } from './components/secretary/SecretaryDashboard';
 import { SuperAdminDashboard } from './components/admin/SuperAdminDashboard';
+import { ParishAnnouncementBanner } from './components/common/ParishAnnouncementBanner';
 
 const MainAppContent: React.FC = () => {
   const { 
@@ -47,8 +48,11 @@ const MainAppContent: React.FC = () => {
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
         
+        {/* Parish Broadcasts & Announcements Banner */}
+        <ParishAnnouncementBanner />
+
         {/* Super Admin Dashboard */}
         {currentUser.role === 'admin' && (
           <SuperAdminDashboard

@@ -25,6 +25,7 @@ export interface Translations {
     adminOverview: string;
     adminUsers: string;
     adminAuditLogs: string;
+    adminAnnouncements: string;
     notifications: string;
     login: string;
     logout: string;
@@ -136,6 +137,34 @@ export interface Translations {
     userCreatedSuccess: string;
     userUpdatedSuccess: string;
     userDeletedSuccess: string;
+  };
+  announcements: {
+    title: string;
+    subtitle: string;
+    createBtn: string;
+    editBtn: string;
+    titleArLabel: string;
+    titleEnLabel: string;
+    contentArLabel: string;
+    contentEnLabel: string;
+    priorityLabel: string;
+    audienceLabel: string;
+    priorityNormal: string;
+    priorityImportant: string;
+    priorityEmergency: string;
+    audienceAll: string;
+    audienceGeneral: string;
+    audiencePriest: string;
+    audienceSecretary: string;
+    activeStatus: string;
+    archivedStatus: string;
+    startDate: string;
+    endDate: string;
+    dismiss: string;
+    noAnnouncements: string;
+    announcementCreated: string;
+    announcementUpdated: string;
+    announcementDeleted: string;
   };
   common: {
     loading: string;
@@ -326,6 +355,7 @@ const translations: Record<Language, Translations> = {
       adminOverview: "System Overview",
       adminUsers: "User Directory",
       adminAuditLogs: "Audit Log",
+      adminAnnouncements: "Announcements",
       notifications: "Notifications",
       login: "Sign In",
       logout: "Sign Out",
@@ -437,6 +467,34 @@ const translations: Record<Language, Translations> = {
       userCreatedSuccess: "User created successfully!",
       userUpdatedSuccess: "User updated successfully!",
       userDeletedSuccess: "User deleted successfully.",
+    },
+    announcements: {
+      title: "Parish Broadcasts & Announcements",
+      subtitle: "Publish top banners, liturgical alerts, and season schedule notices across the congregation.",
+      createBtn: "New Announcement",
+      editBtn: "Edit Announcement",
+      titleArLabel: "Arabic Title",
+      titleEnLabel: "English Title",
+      contentArLabel: "Arabic Announcement Body",
+      contentEnLabel: "English Announcement Body",
+      priorityLabel: "Priority Level",
+      audienceLabel: "Target Audience",
+      priorityNormal: "Normal (Info / Reminder)",
+      priorityImportant: "Important (Feasts / Fasting / Schedule)",
+      priorityEmergency: "Urgent / Emergency (Persistent Alert)",
+      audienceAll: "All Parish Congregation",
+      audienceGeneral: "Church Members Only",
+      audiencePriest: "Priests (Fathers) Only",
+      audienceSecretary: "Secretaries Only",
+      activeStatus: "Active & Broadcasting",
+      archivedStatus: "Inactive / Archived",
+      startDate: "Start Date",
+      endDate: "Expiration Date (Optional)",
+      dismiss: "Dismiss",
+      noAnnouncements: "No parish announcements published yet.",
+      announcementCreated: "Announcement published successfully!",
+      announcementUpdated: "Announcement updated successfully!",
+      announcementDeleted: "Announcement removed.",
     },
     common: {
       loading: "Loading...",
@@ -625,6 +683,7 @@ const translations: Record<Language, Translations> = {
       adminOverview: "نظرة عامة ومراقبة النظام",
       adminUsers: "سجل المستخدمين",
       adminAuditLogs: "سجل العمليات والرقابة",
+      adminAnnouncements: "الإذاعة والتنبيهات",
       notifications: "الإشعارات والرسائل",
       login: "تسجيل الدخول",
       logout: "تسجيل الخروج",
@@ -736,6 +795,34 @@ const translations: Record<Language, Translations> = {
       userCreatedSuccess: "تم إنشاء المستخدم بنجاح!",
       userUpdatedSuccess: "تم تحديث بيانات المستخدم بنجاح!",
       userDeletedSuccess: "تم حذف المستخدم من النظام.",
+    },
+    announcements: {
+      title: "إذاعة وتنبيهات الكنيسة الرسمية",
+      subtitle: "نشر التنبيهات الإذاعية المباشرة، مواعيد المناسبات الكنسية، وتنبيهات الرعاية لكافة شعب وخدام الكنيسة.",
+      createBtn: "إنشاء تنبيه جديد",
+      editBtn: "تعديل التنبيه",
+      titleArLabel: "عنوان التنبيه (بالعربية)",
+      titleEnLabel: "عنوان التنبيه (بالإنجليزية)",
+      contentArLabel: "نص التنبيه الإذاعي (بالعربية)",
+      contentEnLabel: "نص التنبيه الإذاعي (بالإنجليزية)",
+      priorityLabel: "درجة الأهمية",
+      audienceLabel: "الفئة المستهدفة",
+      priorityNormal: "عادي (معلومات / تذكير عام)",
+      priorityImportant: "هام (الأعياد / الصيام / تعديل مواعيد)",
+      priorityEmergency: "عاجل / طارئ (بانر مباشر دائم)",
+      audienceAll: "كافة شعب وخدام الكنيسة",
+      audienceGeneral: "شعب الكنيسة فقط",
+      audiencePriest: "الآباء الكهنة فقط",
+      audienceSecretary: "سكرتارية الكنيسة فقط",
+      activeStatus: "نشط ومذاع بالمنظومة",
+      archivedStatus: "غير نشط / مؤرشف",
+      startDate: "تاريخ البدء",
+      endDate: "تاريخ الانتهاء (اختياري)",
+      dismiss: "إغلاق التنبيه",
+      noAnnouncements: "لا توجد تنبيهات إذاعية منشورة حالياً.",
+      announcementCreated: "تم نشر التنبيه الإذاعي بنجاح!",
+      announcementUpdated: "تم تحديث التنبيه الإذاعي بنجاح!",
+      announcementDeleted: "تم حذف التنبيه الإذاعي.",
     },
     common: {
       loading: "جاري التحميل...",

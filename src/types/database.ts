@@ -111,3 +111,21 @@ export interface NotificationLog {
   is_read: boolean;
   sent_at: string;
 }
+
+export type AnnouncementPriority = 'normal' | 'important' | 'emergency';
+export type AnnouncementAudience = 'all' | 'general' | 'priest' | 'secretary';
+
+export interface ParishAnnouncement {
+  id: string;
+  title_ar: string;
+  title_en: string;
+  content_ar: string;
+  content_en: string;
+  priority: AnnouncementPriority;
+  target_audience: AnnouncementAudience;
+  is_active: boolean;
+  start_date?: string;
+  end_date?: string;
+  created_by?: string;
+  created_at: string;
+}

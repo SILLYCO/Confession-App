@@ -18,7 +18,8 @@ import {
   Crown,
   LayoutDashboard,
   Users,
-  History
+  History,
+  Megaphone
 } from 'lucide-react';
 import { DEFAULT_SKELETON_AVATAR } from '../../types/database';
 
@@ -128,6 +129,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                   >
                     <History className="w-4 h-4 text-gold-400 shrink-0" />
                     <span>{t.nav.adminAuditLogs}</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleTabClick('admin_announcements')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition ${
+                      activeTab === 'admin_announcements'
+                        ? 'bg-navy-900 text-gold-400 shadow-sm'
+                        : 'text-stone-700 hover:bg-stone-100'
+                    }`}
+                  >
+                    <Megaphone className="w-4 h-4 text-gold-400 shrink-0" />
+                    <span>{t.nav.adminAnnouncements}</span>
                   </button>
                 </>
               )}
@@ -340,6 +353,15 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 >
                   <History className="w-4 h-4 text-gold-400" />
                   <span>{t.nav.adminAuditLogs}</span>
+                </button>
+                <button
+                  onClick={() => { handleTabClick('admin_announcements'); setMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
+                    activeTab === 'admin_announcements' ? 'bg-navy-900 text-gold-400 font-bold' : 'text-stone-700'
+                  }`}
+                >
+                  <Megaphone className="w-4 h-4 text-gold-400" />
+                  <span>{t.nav.adminAnnouncements}</span>
                 </button>
               </>
             )}

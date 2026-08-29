@@ -4,6 +4,7 @@ import { useAppStore } from '../../lib/store';
 import { SuperAdminMonitoringDashboard } from './SuperAdminMonitoringDashboard';
 import { SuperAdminUserDirectory } from './SuperAdminUserDirectory';
 import { SuperAdminAuditLog } from './SuperAdminAuditLog';
+import { SuperAdminAnnouncements } from './SuperAdminAnnouncements';
 import { CreatePriestWizardModal } from './CreatePriestWizardModal';
 import { CheckCircle2, AlertTriangle, X } from 'lucide-react';
 
@@ -68,6 +69,10 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
 
       {activeTab === 'admin_audit_logs' && (
         <SuperAdminAuditLog />
+      )}
+
+      {activeTab === 'admin_announcements' && (
+        <SuperAdminAnnouncements />
       )}
 
       {/* Comprehensive Priest Setup Wizard Modal */}
