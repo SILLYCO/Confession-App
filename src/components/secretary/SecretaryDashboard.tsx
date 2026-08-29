@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { format, addDays } from 'date-fns';
 import { useTranslation } from '../../lib/i18n';
 import { useAppStore } from '../../lib/store';
-import { Booking, User } from '../../types/database';
+import { Booking, User, DEFAULT_SKELETON_AVATAR } from '../../types/database';
 import { Badge } from '../common/Badge';
 import { SecretaryBookOnBehalfModal } from './SecretaryBookOnBehalfModal';
 import { SecretaryCancelModal } from './SecretaryCancelModal';
@@ -152,7 +152,7 @@ export const SecretaryDashboard: React.FC = () => {
                     <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-start gap-4 sm:gap-5">
                       <div className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl ring-2 ring-purple-400/80 shadow-md overflow-hidden bg-stone-100 flex items-center justify-center">
                         <img
-                          src={priest.avatar_url || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200'}
+                          src={priest.avatar_url || DEFAULT_SKELETON_AVATAR}
                           alt={priest.name}
                           className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                         />
@@ -257,7 +257,7 @@ export const SecretaryDashboard: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-start gap-4 sm:gap-5">
             <div className="shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl ring-4 ring-purple-400 shadow-md overflow-hidden bg-stone-800 flex items-center justify-center">
               <img
-                src={selectedPriestForSecretary.avatar_url || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200'}
+                src={selectedPriestForSecretary.avatar_url || DEFAULT_SKELETON_AVATAR}
                 alt={selectedPriestForSecretary.name}
                 className="w-full h-full object-cover object-center"
               />
@@ -529,7 +529,7 @@ export const SecretaryDashboard: React.FC = () => {
                 >
                   <div className="flex items-start gap-4">
                     <img
-                      src={member?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100'}
+                      src={member?.avatar_url || DEFAULT_SKELETON_AVATAR}
                       alt={member?.name}
                       className="w-12 h-12 rounded-2xl object-cover ring-2 ring-stone-200 shrink-0"
                     />

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { useAppStore } from '../../lib/store';
 import { Badge } from '../common/Badge';
-import { BookingStatus } from '../../types/database';
+import { BookingStatus, DEFAULT_SKELETON_AVATAR } from '../../types/database';
 import { format } from 'date-fns';
 import { Calendar, Clock, Phone, CheckCircle2, UserX, Check, AlertCircle } from 'lucide-react';
 
@@ -182,7 +182,7 @@ export const PriestBookingsList: React.FC = () => {
                   <div className="flex items-start justify-between gap-3 pb-3 border-b border-stone-100">
                     <div className="flex items-center gap-3">
                       <img
-                        src={member?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100'}
+                        src={member?.avatar_url || DEFAULT_SKELETON_AVATAR}
                         alt={member?.name}
                         className="w-11 h-11 rounded-2xl object-cover ring-2 ring-stone-200 shrink-0"
                       />

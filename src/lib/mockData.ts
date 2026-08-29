@@ -1,4 +1,4 @@
-import { User, PriestProfile, Booking, NotificationLog } from '../types/database';
+import { User, PriestProfile, Booking, NotificationLog, DEFAULT_SKELETON_AVATAR } from '../types/database';
 import { format, addDays } from 'date-fns';
 
 export const MOCK_USERS: User[] = [
@@ -10,7 +10,7 @@ export const MOCK_USERS: User[] = [
     role: 'admin',
     title_en: 'Archdeacon George (Super Admin)',
     title_ar: 'الأرشيدياكون جورج (مدير النظام)',
-    avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200',
+    avatar_url: DEFAULT_SKELETON_AVATAR,
   },
   {
     id: '11111111-1111-1111-1111-111111111111',
@@ -20,7 +20,7 @@ export const MOCK_USERS: User[] = [
     role: 'priest',
     title_en: 'Fr. Athanasius Hanna',
     title_ar: 'القمص أثناسيوس حنا',
-    avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200',
+    avatar_url: DEFAULT_SKELETON_AVATAR,
   },
   {
     id: '22222222-2222-2222-2222-222222222222',
@@ -30,7 +30,7 @@ export const MOCK_USERS: User[] = [
     role: 'priest',
     title_en: 'Fr. Menas Shenouda',
     title_ar: 'الراهب القس مينا شنودة',
-    avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200',
+    avatar_url: DEFAULT_SKELETON_AVATAR,
   },
   {
     id: '33333333-3333-3333-3333-333333333333',
@@ -44,7 +44,7 @@ export const MOCK_USERS: User[] = [
       '11111111-1111-1111-1111-111111111111',
       '22222222-2222-2222-2222-222222222222'
     ],
-    avatar_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200',
+    avatar_url: DEFAULT_SKELETON_AVATAR,
   },
   {
     id: '44444444-4444-4444-4444-444444444444',
@@ -54,7 +54,7 @@ export const MOCK_USERS: User[] = [
     role: 'general',
     title_en: 'Church Member',
     title_ar: 'شماس بيتر مرقس',
-    avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200',
+    avatar_url: DEFAULT_SKELETON_AVATAR,
   },
   {
     id: '55555555-5555-5555-5555-555555555555',
@@ -64,7 +64,7 @@ export const MOCK_USERS: User[] = [
     role: 'general',
     title_en: 'Church Member',
     title_ar: 'مريم جرجس',
-    avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200',
+    avatar_url: DEFAULT_SKELETON_AVATAR,
   },
   {
     id: '66666666-6666-6666-6666-666666666666',
@@ -74,7 +74,7 @@ export const MOCK_USERS: User[] = [
     role: 'general',
     title_en: 'Church Member',
     title_ar: 'داود صموئيل',
-    avatar_url: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=200',
+    avatar_url: DEFAULT_SKELETON_AVATAR,
   }
 ];
 

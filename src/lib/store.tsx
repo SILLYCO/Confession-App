@@ -372,7 +372,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           role: 'general',
           title_ar: params.title_ar || params.name.trim(),
           title_en: params.title_en || params.name.trim(),
-          avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100',
+          avatar_url: DEFAULT_SKELETON_AVATAR,
           created_at: new Date().toISOString(),
         };
 
@@ -397,7 +397,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       role: 'general',
       title_ar: params.title_ar || params.name.trim(),
       title_en: params.title_en || params.name.trim(),
-      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100',
+      avatar_url: DEFAULT_SKELETON_AVATAR,
       created_at: new Date().toISOString(),
     };
 
