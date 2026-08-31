@@ -19,7 +19,8 @@ import {
   LayoutDashboard,
   Users,
   History,
-  Megaphone
+  Megaphone,
+  User as UserIcon
 } from 'lucide-react';
 import { DEFAULT_SKELETON_AVATAR } from '../../types/database';
 
@@ -169,6 +170,17 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                     <Calendar className="w-4 h-4 shrink-0" />
                     <span>{t.nav.myAppointments}</span>
                   </button>
+                  <button
+                    onClick={() => handleTabClick('my_profile')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition ${
+                      activeTab === 'my_profile'
+                        ? 'bg-navy-900 text-gold-400 shadow-sm'
+                        : 'text-stone-700 hover:bg-stone-100'
+                    }`}
+                  >
+                    <UserIcon className="w-4 h-4 shrink-0" />
+                    <span>{t.nav.myProfile}</span>
+                  </button>
                 </>
               )}
 
@@ -259,7 +271,17 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               </div>
 
               {/* User Info & Avatar */}
-              <div className="hidden sm:flex items-center gap-2 ps-2 border-s border-stone-200 shrink-0 max-w-[150px] lg:max-w-[200px]">
+              <div 
+                onClick={() => {
+                  if (currentUser.role === 'general') {
+                    handleTabClick('my_profile');
+                  }
+                }}
+                className={`hidden sm:flex items-center gap-2 ps-2 border-s border-stone-200 shrink-0 max-w-[150px] lg:max-w-[200px] ${
+                  currentUser.role === 'general' ? 'cursor-pointer hover:opacity-80 transition' : ''
+                }`}
+                title={currentUser.role === 'general' ? t.nav.myProfile : undefined}
+              >
                 <img
                   src={currentUser.avatar_url || DEFAULT_SKELETON_AVATAR}
                   alt={currentUser.name}
@@ -302,7 +324,15 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-stone-200 bg-white px-4 pt-3 pb-5 space-y-2">
             <div className="flex items-center justify-between pb-3 border-b border-stone-100">
-              <div className="flex items-center gap-3">
+              <div 
+                onClick={() => {
+                  if (currentUser.role === 'general') {
+                    handleTabClick('my_profile');
+                    setMobileMenuOpen(false);
+                  }
+                }}
+                className={`flex items-center gap-3 ${currentUser.role === 'general' ? 'cursor-pointer' : ''}`}
+              >
                 <img
                   src={currentUser.avatar_url || DEFAULT_SKELETON_AVATAR}
                   alt={currentUser.name}
@@ -385,6 +415,15 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 >
                   <Calendar className="w-4 h-4" />
                   <span>{t.nav.myAppointments}</span>
+                </button>
+                <button
+                  onClick={() => { handleTabClick('my_profile'); setMobileMenuOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
+                    activeTab === 'my_profile' ? 'bg-navy-900 text-gold-400 font-bold' : 'text-stone-700'
+                  }`}
+                >
+                  <UserIcon className="w-4 h-4" />
+                  <span>{t.nav.myProfile}</span>
                 </button>
               </>
             )}

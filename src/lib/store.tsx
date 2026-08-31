@@ -10,7 +10,12 @@ import {
   DEFAULT_SKELETON_AVATAR,
   ParishAnnouncement,
   AnnouncementPriority,
-  AnnouncementAudience
+  AnnouncementAudience,
+  MaritalStatus,
+  ChurchServiceRole,
+  Gender,
+  ConfessionRhythmInfo,
+  ConfessionRhythmStatus
 } from '../types/database';
 import { 
   MOCK_USERS, 
@@ -23,6 +28,7 @@ import {
   isWithinTwoHourCutoff, 
   isSlotInPast 
 } from './slotGenerator';
+import { format, addDays } from 'date-fns';
 import { supabase, isSupabaseConfigured } from './supabase';
 import confetti from 'canvas-confetti';
 
@@ -38,9 +44,22 @@ interface AppStoreContextType {
     name: string; 
     email: string; 
     password?: string; 
-    phone?: string; 
+    phone: string;
+    secondary_phone?: string;
+    gender?: Gender;
+    date_of_birth: string;
+    national_id: string;
+    marital_status: MaritalStatus;
+    profession?: string;
+    education?: string;
+    address: string;
+    service_status: ChurchServiceRole;
+    served_stage?: string;
+    serving_stage?: string;
+    other_services?: string;
+    confession_father_id: string;
     title_ar?: string; 
-    title_en?: string 
+    title_en?: string;
   }) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -121,6 +140,9 @@ interface AppStoreContextType {
   toggleAnnouncementActive: (id: string) => Promise<{ success: boolean; error?: string }>;
   getActiveAnnouncementsForUser: (userRole?: string) => ParishAnnouncement[];
 
+  // Confession Rhythm
+  getConfessionRhythm: (userId: string) => ConfessionRhythmInfo;
+
   markNotificationAsRead: (notificationId: string) => void;
   markAllNotificationsAsRead: () => void;
   refreshData: () => void;
@@ -164,7 +186,32 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Initialize state from local storage or mock data
   const [allUsers, setAllUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_USERS);
-    return saved ? JSON.parse(saved) : MOCK_USERS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Refresh priest title and remove old dummy test priests
+          const cleaned = parsed.map((u: User) => {
+            if (u.id === '11111111-1111-1111-1111-111111111111' || u.name === 'Fr. Bishoy Ahdy') {
+              return { ...u, title_ar: 'القس بيشوي عهدي', title_en: 'Fr. Bishoy Ahdy' };
+            }
+            return u;
+          }).filter((u: User) => 
+            u.name !== 'Fr. Athanasius Hanna' && 
+            u.name !== 'Fr. Menas Shenouda' && 
+            u.title_ar !== 'القمص أثناسيوس حنا' &&
+            u.title_ar !== 'الراهب القس مينا شنودة'
+          );
+          const hasPriests = cleaned.some((u: User) => u.role === 'priest');
+          if (!hasPriests) {
+            const realPriests = MOCK_USERS.filter(u => u.role === 'priest');
+            return [...cleaned, ...realPriests];
+          }
+          return cleaned;
+        }
+      } catch {}
+    }
+    return MOCK_USERS;
   });
 
   const [currentUser, setCurrentUserState] = useState<User | null>(() => {
@@ -180,7 +227,19 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const [priestProfiles, setPriestProfiles] = useState<PriestProfile[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_PROFILES);
-    return saved ? JSON.parse(saved) : MOCK_PRIEST_PROFILES;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const cleaned = parsed.filter((p: PriestProfile) => 
+            p.priest_id !== '22222222-2222-2222-2222-222222222222'
+          );
+          if (cleaned.length === 0) return MOCK_PRIEST_PROFILES;
+          return cleaned;
+        }
+      } catch {}
+    }
+    return MOCK_PRIEST_PROFILES;
   });
 
   const [bookings, setBookings] = useState<Booking[]>(() => {
@@ -281,8 +340,14 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         client.from('notification_logs').select('*').order('sent_at', { ascending: false }),
       ]);
 
-      if (usersData) {
-        setAllUsers(usersData);
+      if (usersData && usersData.length > 0) {
+        const hasPriests = usersData.some(u => u.role === 'priest');
+        if (!hasPriests) {
+          const mockPriests = MOCK_USERS.filter(u => u.role === 'priest');
+          setAllUsers([...usersData, ...mockPriests]);
+        } else {
+          setAllUsers(usersData);
+        }
       }
       if (profilesData) {
         setPriestProfiles(profilesData);
@@ -386,7 +451,20 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     name: string;
     email: string;
     password?: string;
-    phone?: string;
+    phone: string;
+    secondary_phone?: string;
+    gender?: Gender;
+    date_of_birth: string;
+    national_id: string;
+    marital_status: MaritalStatus;
+    profession?: string;
+    education?: string;
+    address: string;
+    service_status: ChurchServiceRole;
+    served_stage?: string;
+    serving_stage?: string;
+    other_services?: string;
+    confession_father_id: string;
     title_ar?: string;
     title_en?: string;
   }): Promise<{ success: boolean; error?: string }> => {
@@ -397,7 +475,20 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         options: {
           data: {
             name: params.name.trim(),
-            phone: params.phone?.trim(),
+            phone: params.phone.trim(),
+            secondary_phone: params.secondary_phone?.trim(),
+            gender: params.gender,
+            date_of_birth: params.date_of_birth,
+            national_id: params.national_id.trim(),
+            marital_status: params.marital_status,
+            profession: params.profession?.trim(),
+            education: params.education?.trim(),
+            address: params.address.trim(),
+            service_status: params.service_status,
+            served_stage: params.service_status === 'served' ? params.served_stage?.trim() : undefined,
+            serving_stage: params.service_status === 'servant' ? params.serving_stage?.trim() : undefined,
+            other_services: params.other_services?.trim(),
+            confession_father_id: params.confession_father_id,
             role: 'general',
             title_ar: params.title_ar || params.name.trim(),
             title_en: params.title_en || params.name.trim(),
@@ -414,7 +505,20 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           id: data.user.id,
           name: params.name.trim(),
           email: params.email.trim(),
-          phone: params.phone?.trim(),
+          phone: params.phone.trim(),
+          secondary_phone: params.secondary_phone?.trim(),
+          gender: params.gender,
+          date_of_birth: params.date_of_birth,
+          national_id: params.national_id.trim(),
+          marital_status: params.marital_status,
+          profession: params.profession?.trim(),
+          education: params.education?.trim(),
+          address: params.address.trim(),
+          service_status: params.service_status,
+          served_stage: params.service_status === 'served' ? params.served_stage?.trim() : undefined,
+          serving_stage: params.service_status === 'servant' ? params.serving_stage?.trim() : undefined,
+          other_services: params.other_services?.trim(),
+          confession_father_id: params.confession_father_id,
           role: 'general',
           title_ar: params.title_ar || params.name.trim(),
           title_en: params.title_en || params.name.trim(),
@@ -439,7 +543,20 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       id: 'usr_' + Math.random().toString(36).substring(2, 9),
       name: params.name.trim(),
       email: params.email.trim(),
-      phone: params.phone?.trim(),
+      phone: params.phone.trim(),
+      secondary_phone: params.secondary_phone?.trim(),
+      gender: params.gender,
+      date_of_birth: params.date_of_birth,
+      national_id: params.national_id.trim(),
+      marital_status: params.marital_status,
+      profession: params.profession?.trim(),
+      education: params.education?.trim(),
+      address: params.address.trim(),
+      service_status: params.service_status,
+      served_stage: params.service_status === 'served' ? params.served_stage?.trim() : undefined,
+      serving_stage: params.service_status === 'servant' ? params.serving_stage?.trim() : undefined,
+      other_services: params.other_services?.trim(),
+      confession_father_id: params.confession_father_id,
       role: 'general',
       title_ar: params.title_ar || params.name.trim(),
       title_en: params.title_en || params.name.trim(),
@@ -469,7 +586,11 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const isLoggedIn = Boolean(currentUser);
 
-  const priests = useMemo(() => allUsers.filter(u => u.role === 'priest'), [allUsers]);
+  const priests = useMemo(() => {
+    const list = allUsers.filter(u => u.role === 'priest');
+    if (list.length > 0) return list;
+    return MOCK_USERS.filter(u => u.role === 'priest');
+  }, [allUsers]);
   const secretaries = useMemo(() => allUsers.filter(u => u.role === 'secretary'), [allUsers]);
   const generalUsers = useMemo(() => allUsers.filter(u => u.role === 'general'), [allUsers]);
 
@@ -539,6 +660,85 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!targetId) return [];
     return enrichedBookings.filter(b => b.user_id === targetId);
   }, [enrichedBookings, currentUser]);
+
+  const getConfessionRhythm = useCallback((userId?: string): ConfessionRhythmInfo => {
+    const targetId = userId || currentUser?.id;
+    if (!targetId) {
+      return {
+        daysSinceLast: null,
+        intervalDays: 30,
+        daysRemaining: null,
+        targetDate: null,
+        percentageElapsed: 0,
+        status: 'no_history',
+        hasUpcomingBooking: false,
+        lastConfessionDate: null,
+      };
+    }
+
+    const user = allUsers.find(u => u.id === targetId) || currentUser;
+    const intervalDays = user?.confession_reminder_interval_days || 30;
+    const userBookingsList = enrichedBookings.filter(b => b.user_id === targetId);
+
+    // Completed confessions sorted descending
+    const completedList = userBookingsList
+      .filter(b => b.status === 'completed')
+      .sort((a, b) => new Date(b.date + 'T' + b.start_time).getTime() - new Date(a.date + 'T' + a.start_time).getTime());
+
+    const lastConfession = completedList[0];
+    const lastConfessionDate = lastConfession ? lastConfession.date : null;
+
+    // Check active upcoming booking
+    const activeUpcoming = userBookingsList.find(b => {
+      if (b.status !== 'confirmed') return false;
+      return !isSlotInPast(b.date, b.start_time);
+    });
+    const hasUpcomingBooking = Boolean(activeUpcoming);
+
+    if (!lastConfessionDate) {
+      return {
+        daysSinceLast: null,
+        intervalDays,
+        daysRemaining: null,
+        targetDate: null,
+        percentageElapsed: 0,
+        status: 'no_history',
+        hasUpcomingBooking,
+        lastConfessionDate: null,
+      };
+    }
+
+    const lastDate = new Date(lastConfessionDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    lastDate.setHours(0, 0, 0, 0);
+
+    const diffTime = today.getTime() - lastDate.getTime();
+    const daysSinceLast = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+
+    const daysRemaining = intervalDays - daysSinceLast;
+    const targetDateObj = addDays(lastDate, intervalDays);
+    const targetDate = format(targetDateObj, 'yyyy-MM-dd');
+    const percentageElapsed = Math.min(Math.round((daysSinceLast / intervalDays) * 100), 200);
+
+    let status: ConfessionRhythmStatus = 'on_track';
+    if (daysSinceLast > intervalDays) {
+      status = 'overdue';
+    } else if (daysRemaining <= 7) {
+      status = 'due_soon';
+    }
+
+    return {
+      daysSinceLast,
+      intervalDays,
+      daysRemaining,
+      targetDate,
+      percentageElapsed,
+      status,
+      hasUpcomingBooking,
+      lastConfessionDate,
+    };
+  }, [allUsers, currentUser, enrichedBookings]);
 
   const getPriestBookings = useCallback((priestId?: string) => {
     const targetId = priestId || currentUser?.id;
@@ -1660,6 +1860,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         getPriestSlots,
         getUserActiveBooking,
         getUserBookings,
+        getConfessionRhythm,
         getPriestBookings,
         getSecretaryAssignedPriests,
         bookSlot,

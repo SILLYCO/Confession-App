@@ -16,6 +16,7 @@ export interface Translations {
     home: string;
     priests: string;
     myAppointments: string;
+    myProfile: string;
     priestSchedule: string;
     priestOverrides: string;
     priestAppointments: string;
@@ -31,6 +32,61 @@ export interface Translations {
     logout: string;
     switchRole: string;
     demoRoleSwitcher: string;
+  };
+  profile: {
+    pageTitle: string;
+    pageSubtitle: string;
+    personalTab: string;
+    churchTab: string;
+    confessionTab: string;
+    securityTab: string;
+    lockedFieldBadge: string;
+    lockedFieldNotice: string;
+    saveChanges: string;
+    savingChanges: string;
+    changesSaved: string;
+    changePasswordTitle: string;
+    currentPasswordLabel: string;
+    newPasswordLabel: string;
+    confirmNewPasswordLabel: string;
+    updatePasswordBtn: string;
+    passwordUpdatedSuccess: string;
+    confessionStatsTitle: string;
+    totalCompletedConfessions: string;
+    lastConfessionDate: string;
+    nextUpcomingConfession: string;
+    noUpcomingConfession: string;
+    bookNowBtn: string;
+    pastConfessionsTitle: string;
+    recordsLabel: string;
+    noPastConfessions: string;
+    ageLabel: string;
+    yearsOld: string;
+    confessionFatherLockedNotice: string;
+    contactChurchAdmin: string;
+    
+    // Rhythm & Regularity Reminder
+    rhythmTitle: string;
+    rhythmSubtitle: string;
+    rhythmIntervalLabel: string;
+    rhythmInterval2Weeks: string;
+    rhythmInterval3Weeks: string;
+    rhythmIntervalMonthly: string;
+    rhythmInterval45Days: string;
+    rhythmInterval2Months: string;
+    rhythmInterval3Months: string;
+    rhythmRemindersToggle: string;
+    rhythmStatusOnTrack: string;
+    rhythmStatusDueSoon: string;
+    rhythmStatusOverdue: string;
+    rhythmStatusNoHistory: string;
+    rhythmDaysElapsed: string;
+    rhythmDaysRemaining: string;
+    rhythmOverdueBy: string;
+    rhythmHasUpcomingBadge: string;
+    rhythmSpiritualVerse: string;
+    rhythmOverdueBannerTitle: string;
+    rhythmOverdueBannerBody: string;
   };
   auth: {
     signInTitle: string;
@@ -59,6 +115,49 @@ export interface Translations {
     signOut: string;
     loggedInAs: string;
     switchAccount: string;
+    
+    // New Comprehensive Sign Up Fields
+    genderLabel: string;
+    genderMale: string;
+    genderFemale: string;
+    dateOfBirthLabel: string;
+    nationalIdLabel: string;
+    nationalIdValidationErr: string;
+    secondaryPhoneLabel: string;
+    maritalStatusLabel: string;
+    maritalSingle: string;
+    maritalMarried: string;
+    maritalWidowed: string;
+    maritalDivorced: string;
+    professionLabel: string;
+    professionPlaceholder: string;
+    educationLabel: string;
+    educationPlaceholder: string;
+    addressLabel: string;
+    serviceStatusLabel: string;
+    generalMemberOption: string;
+    servantOption: string;
+    servedOption: string;
+    servingStageLabel: string;
+    servingStagePlaceholder: string;
+    servedStageLabel: string;
+    servedStagePlaceholder: string;
+    otherServicesLabel: string;
+    otherServicesPlaceholder: string;
+    sectionIdentity: string;
+    sectionContact: string;
+    sectionChurch: string;
+    sectionSecurity: string;
+    mandatoryFieldErr: string;
+    
+    // Confession Father
+    confessionFatherLabel: string;
+    selectConfessionFather: string;
+    confessionFatherNotice: string;
+    confessionFatherRequired: string;
+    yourConfessionFatherBadge: string;
+    changeConfessionFather: string;
+    confessionFatherUpdated: string;
   };
   adminFlow: {
     title: string;
@@ -346,6 +445,7 @@ const translations: Record<Language, Translations> = {
       home: "Home",
       priests: "Priests",
       myAppointments: "My Appointment",
+      myProfile: "My Profile",
       priestSchedule: "Schedule",
       priestOverrides: "Overrides",
       priestAppointments: "Appointments",
@@ -361,6 +461,61 @@ const translations: Record<Language, Translations> = {
       logout: "Sign Out",
       switchRole: "Switch Role",
       demoRoleSwitcher: "Interactive Role Switcher",
+    },
+    profile: {
+      pageTitle: "My Profile & Church Identity",
+      pageSubtitle: "View, update, and manage your church fellowship records and confession information.",
+      personalTab: "Personal Identity",
+      churchTab: "Church Fellowship",
+      confessionTab: "Confession Journey",
+      securityTab: "Account Security",
+      lockedFieldBadge: "Official Church Record (Locked)",
+      lockedFieldNotice: "This field is locked according to official church records. Contact church administration to update it.",
+      saveChanges: "Save Changes",
+      savingChanges: "Saving Changes...",
+      changesSaved: "Profile changes saved successfully!",
+      changePasswordTitle: "Change Account Password",
+      currentPasswordLabel: "Current Password",
+      newPasswordLabel: "New Password (Min 6 characters)",
+      confirmNewPasswordLabel: "Confirm New Password",
+      updatePasswordBtn: "Update Password",
+      passwordUpdatedSuccess: "Password updated successfully!",
+      confessionStatsTitle: "Spiritual Confession Record",
+      totalCompletedConfessions: "Completed Confessions",
+      lastConfessionDate: "Last Confession Date",
+      nextUpcomingConfession: "Upcoming Confession",
+      noUpcomingConfession: "No upcoming confession appointment scheduled.",
+      bookNowBtn: "Book Confession Now",
+      pastConfessionsTitle: "Previous Confession Sessions",
+      recordsLabel: "records",
+      noPastConfessions: "No previous completed or recorded confession sessions yet.",
+      ageLabel: "Age",
+      yearsOld: "years old",
+      confessionFatherLockedNotice: "Your Confession Father is assigned by church records. To request a change, please contact church administration.",
+      contactChurchAdmin: "Contact Church Office",
+      
+      // Rhythm & Regularity Reminder
+      rhythmTitle: "Confession Regularity & Spiritual Rhythm",
+      rhythmSubtitle: "Set your personal spiritual interval to maintain regular participation in the Holy Sacrament.",
+      rhythmIntervalLabel: "Target Confession Interval",
+      rhythmInterval2Weeks: "Every 2 Weeks (14 Days)",
+      rhythmInterval3Weeks: "Every 3 Weeks (21 Days)",
+      rhythmIntervalMonthly: "Monthly (30 Days - Recommended)",
+      rhythmInterval45Days: "Every 45 Days (Church Fasts)",
+      rhythmInterval2Months: "Every 2 Months (60 Days)",
+      rhythmInterval3Months: "Quarterly (90 Days)",
+      rhythmRemindersToggle: "Enable Regular Confession Reminders",
+      rhythmStatusOnTrack: "On Track",
+      rhythmStatusDueSoon: "Due Soon",
+      rhythmStatusOverdue: "Overdue",
+      rhythmStatusNoHistory: "Start Confession Journey",
+      rhythmDaysElapsed: "{days} days elapsed",
+      rhythmDaysRemaining: "{days} days remaining",
+      rhythmOverdueBy: "Overdue by {days} days",
+      rhythmHasUpcomingBadge: "Upcoming Confession Scheduled ✨",
+      rhythmSpiritualVerse: "“Bring me back and I will return, for You are the Lord my God” (Jeremiah 31:18)",
+      rhythmOverdueBannerTitle: "Sacred Spiritual Reminder: Sacrament of Confession",
+      rhythmOverdueBannerBody: "It has been more than {days} days since your last confession with {priestName}. The Church lovingly reminds you to renew the blessing of repentance and confession.",
     },
     auth: {
       signInTitle: "Sign In to Your Account",
@@ -389,6 +544,49 @@ const translations: Record<Language, Translations> = {
       signOut: "Sign Out",
       loggedInAs: "Logged in as",
       switchAccount: "Switch Account",
+      
+      // New Comprehensive Sign Up Fields
+      genderLabel: "Gender",
+      genderMale: "Male",
+      genderFemale: "Female",
+      dateOfBirthLabel: "Date of Birth",
+      nationalIdLabel: "National ID Number (14 digits)",
+      nationalIdValidationErr: "National ID must be exactly 14 digits.",
+      secondaryPhoneLabel: "Secondary Phone Number (Optional)",
+      maritalStatusLabel: "Marital Status",
+      maritalSingle: "Single",
+      maritalMarried: "Married",
+      maritalWidowed: "Widowed",
+      maritalDivorced: "Divorced",
+      professionLabel: "Profession / Occupation",
+      professionPlaceholder: "e.g. Engineer, Doctor, Accountant, Student...",
+      educationLabel: "Educational Qualification",
+      educationPlaceholder: "e.g. Bachelor's Degree, College Student, High School...",
+      addressLabel: "Home Address",
+      serviceStatusLabel: "Church Role",
+      generalMemberOption: "General Congregation (No specific meeting)",
+      servantOption: "Church Servant",
+      servedOption: "Attending a Meeting / Sunday School",
+      servingStageLabel: "What age / stage do you serve?",
+      servingStagePlaceholder: "e.g. Primary, Preparatory, Secondary, Youth...",
+      servedStageLabel: "What grade / stage are you in?",
+      servedStagePlaceholder: "e.g. 1st Secondary, 2nd College, Graduates...",
+      otherServicesLabel: "If you participate in other church activities, mention them here (Optional)",
+      otherServicesPlaceholder: "Leave empty if you do not participate in other activities...",
+      sectionIdentity: "1. Personal Identity & National ID",
+      sectionContact: "2. Contact Info & Home Address",
+      sectionChurch: "3. Church Fellowship & Service Role",
+      sectionSecurity: "4. Account Security",
+      mandatoryFieldErr: "Please fill in all mandatory fields marked with (*).",
+      
+      // Confession Father
+      confessionFatherLabel: "Confession Father",
+      selectConfessionFather: "Select your Confession Father",
+      confessionFatherNotice: "Note: Confession Father is selected during sign-up. Only your Father's schedule will be available for booking, and this selection can only be modified by Church Administration.",
+      confessionFatherRequired: "Please select your Confession Father.",
+      yourConfessionFatherBadge: "Your Confession Father",
+      changeConfessionFather: "Change Confession Father",
+      confessionFatherUpdated: "Confession Father updated successfully.",
     },
     adminFlow: {
       title: "Super Admin Control Center",
@@ -674,6 +872,7 @@ const translations: Record<Language, Translations> = {
       home: "الرئيسية",
       priests: "الآباء الكهنة",
       myAppointments: "موعدي القادم",
+      myProfile: "ملفي الشخصي",
       priestSchedule: "الجدول والمدة",
       priestOverrides: "الاعتذارات",
       priestAppointments: "الحجوزات",
@@ -689,6 +888,61 @@ const translations: Record<Language, Translations> = {
       logout: "تسجيل الخروج",
       switchRole: "تبديل الصلاحية",
       demoRoleSwitcher: "المبدل التفاعلي للأدوار",
+    },
+    profile: {
+      pageTitle: "ملفي الشخصي وبياناتي الكنسية",
+      pageSubtitle: "عرض وتحديث بياناتك الشخصية والتواصل وسجل سر الاعتراف المقدس.",
+      personalTab: "البيانات الشخصية",
+      churchTab: "الارتباط والخدمة",
+      confessionTab: "سجل الاعتراف",
+      securityTab: "أمان الحساب",
+      lockedFieldBadge: "سجل كنسي رسمي (مقفل)",
+      lockedFieldNotice: "هذا الحقل مؤمن ومقفل بسجلات الكنيسة الرسمية، ولا يمكن تعديله إلا من خلال إدارة الكنيسة.",
+      saveChanges: "حفظ التعديلات",
+      savingChanges: "جارٍ حفظ التعديلات...",
+      changesSaved: "تم حفظ التعديلات بنجاح!",
+      changePasswordTitle: "تغيير كلمة المرور",
+      currentPasswordLabel: "كلمة المرور الحالية",
+      newPasswordLabel: "كلمة المرور الجديدة (6 أحرف على الأقل)",
+      confirmNewPasswordLabel: "تأكيد كلمة المرور الجديدة",
+      updatePasswordBtn: "تحديث كلمة المرور",
+      passwordUpdatedSuccess: "تم تحديث كلمة المرور بنجاح!",
+      confessionStatsTitle: "سجل سر الاعتراف المقدس",
+      totalCompletedConfessions: "إجمالي جلسات الاعتراف المكتملة",
+      lastConfessionDate: "تاريخ آخر اعتراف",
+      nextUpcomingConfession: "موعد الاعتراف القادم",
+      noUpcomingConfession: "لا يوجد موعد اعتراف قادم محجوز حالياً.",
+      bookNowBtn: "احجز موعد اعتراف الآن",
+      pastConfessionsTitle: "سجل جلسات الاعتراف السابقة",
+      recordsLabel: "جلسة",
+      noPastConfessions: "لا توجد جلسات اعتراف سابقة مسجلة حتى الآن.",
+      ageLabel: "العمر",
+      yearsOld: "سنة",
+      confessionFatherLockedNotice: "أب الاعتراف محدد ومعتمد بسجلات الكنيسة، ولطلب تغيير أب الاعتراف يرجى التواصل مع إدارة الكنيسة.",
+      contactChurchAdmin: "تواصل مع أمانة الكنيسة",
+      
+      // Rhythm & Regularity Reminder
+      rhythmTitle: "متابعة دورية سر الاعتراف",
+      rhythmSubtitle: "حدد دوريتك الروحية المفضلة للمواظبة والانتظام على سر التوبة والاعتراف المقدس.",
+      rhythmIntervalLabel: "الدورية الروحية المستهدفة",
+      rhythmInterval2Weeks: "كل أسبوعين (14 يوماً)",
+      rhythmInterval3Weeks: "كل 3 أسابيع (21 يوماً)",
+      rhythmIntervalMonthly: "شهرياً (30 يوماً - المعتاد)",
+      rhythmInterval45Days: "كل 45 يوماً (أصوام الكنيسة)",
+      rhythmInterval2Months: "كل شهرين (60 يوماً)",
+      rhythmInterval3Months: "كل 3 أشهر (90 يوماً)",
+      rhythmRemindersToggle: "تفعيل التذكير الروحي المنتظم",
+      rhythmStatusOnTrack: "منتظم روحيّاً",
+      rhythmStatusDueSoon: "حان موعد الاعتراف",
+      rhythmStatusOverdue: "تجاوزت المدة المعتادة",
+      rhythmStatusNoHistory: "ابدأ رحلة الاعتراف",
+      rhythmDaysElapsed: "مضى {days} يوماً",
+      rhythmDaysRemaining: "متبقي {days} يوماً",
+      rhythmOverdueBy: "تجاوزت المدة بـ {days} يوماً",
+      rhythmHasUpcomingBadge: "لديك موعد قادم محجوز ✨",
+      rhythmSpiritualVerse: "«تُوبَنِي فَأَتُوبَ لأَنَّكَ أَنْتَ الرَّبُّ إِلهِي» (إر 31: 18)",
+      rhythmOverdueBannerTitle: "تذكير روحي مبارك: سر التوبة والاعتراف",
+      rhythmOverdueBannerBody: "مرّ أكثر من {days} يوماً على آخر جلسة اعتراف مع {priestName}. تذكرك الكنيسة ببركة تجديد سر التوبة والاعتراف المقدس.",
     },
     auth: {
       signInTitle: "تسجيل الدخول إلى حسابك",
@@ -717,6 +971,49 @@ const translations: Record<Language, Translations> = {
       signOut: "تسجيل الخروج",
       loggedInAs: "مسجل الدخول باسم",
       switchAccount: "تبديل الحساب",
+      
+      // New Comprehensive Sign Up Fields
+      genderLabel: "النوع",
+      genderMale: "ذكر",
+      genderFemale: "أنثى",
+      dateOfBirthLabel: "تاريخ الميلاد",
+      nationalIdLabel: "الرقم القومي (١٤ رقماً)",
+      nationalIdValidationErr: "يجب أن يتكون الرقم القومي من ١٤ رقماً بالضبط.",
+      secondaryPhoneLabel: "رقم هاتف آخر (اختياري)",
+      maritalStatusLabel: "الحالة الاجتماعية",
+      maritalSingle: "أعزب / آنسة",
+      maritalMarried: "متزوج / متزوجة",
+      maritalWidowed: "أرمل / أرملة",
+      maritalDivorced: "مطلق / مطلقة",
+      professionLabel: "المهنة / الوظيفة",
+      professionPlaceholder: "مثال: مهندس، طبيب، محاسب، طالب، معلم...",
+      educationLabel: "المؤهل الدراسي",
+      educationPlaceholder: "مثال: بكالوريوس، ليسانس، طالب جامعي، ثانوية عامة...",
+      addressLabel: "العنوان بالتفصيل",
+      serviceStatusLabel: "الصفة الكنسية",
+      generalMemberOption: "شعب الكنيسة العام (غير ملتحق باجتماع)",
+      servantOption: "خادم بالكنيسة",
+      servedOption: "مخدوم (ملتحق باجتماع / أسرة)",
+      servingStageLabel: "في أي سن تخدم؟",
+      servingStagePlaceholder: "مثال: خدمة ابتدائي، إعدادي، ثانوي، شباب...",
+      servedStageLabel: "في سنة كام؟",
+      servedStagePlaceholder: "مثال: أولى ثانوي، ثانية جامعة، خريجين...",
+      otherServicesLabel: "إذا كنت في خدمات أخرى اذكرها هنا (اختياري)",
+      otherServicesPlaceholder: "اترك الحقل فارغاً إذا كنت لا تشارك في أنشطة أخرى...",
+      sectionIdentity: "١. البيانات الشخصية والرقم القومي",
+      sectionContact: "٢. بيانات الاتصال ومحل السكن",
+      sectionChurch: "٣. الارتباط والخدمة الكنسية",
+      sectionSecurity: "٤. أمان وكلمة مرور الحساب",
+      mandatoryFieldErr: "يرجى استكمال جميع الحقول الإلزامية المطلوبة (*).",
+      
+      // Confession Father
+      confessionFatherLabel: "أب الاعتراف",
+      selectConfessionFather: "اختر أب اعترافك",
+      confessionFatherNotice: "تنبيه: يتم تحديد أب الاعتراف أثناء التسجيل، وستظهر لك مواعيد أب اعترافك فقط لحجز سر الاعتراف، ولا يمكن تعديل هذا الاختيار إلا من خلال إدارة الكنيسة.",
+      confessionFatherRequired: "يرجى اختيار أب الاعتراف.",
+      yourConfessionFatherBadge: "أب اعترافك الخاص",
+      changeConfessionFather: "تعديل أب الاعتراف",
+      confessionFatherUpdated: "تم تحديث أب الاعتراف بنجاح.",
     },
     adminFlow: {
       title: "مركز إدارة النظام والمستخدمين (سوبر أدمن)",

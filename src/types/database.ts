@@ -28,18 +28,55 @@ export interface ScheduleOverride {
   reason?: string; // e.g. "Travel to Monastery", "Feast Liturgy", "Emergency"
 }
 
+export type MaritalStatus = 'single' | 'married' | 'widowed' | 'divorced';
+export type ChurchServiceRole = 'general_member' | 'served' | 'servant';
+export type Gender = 'male' | 'female';
+
 export interface User {
   id: string;
   name: string;
   email: string;
   phone?: string;
+  secondary_phone?: string;
   role: UserRole;
   avatar_url?: string;
   title_ar?: string;
   title_en?: string;
+  
+  // Extended Member Profile Fields
+  gender?: Gender;
+  date_of_birth?: string; // YYYY-MM-DD
+  national_id?: string;   // 14 digits
+  marital_status?: MaritalStatus;
+  profession?: string;
+  education?: string;
+  address?: string;
+  service_status?: ChurchServiceRole;
+  served_stage?: string;   // e.g. "ثانوي", "جامعة"
+  serving_stage?: string;  // e.g. "خدمة ابتدائي", "إعدادي"
+  other_services?: string; // Additional activities description
+  confession_father_id?: string; // Assigned Priest ID for confession sacrament
+  
+  // Confession Rhythm & Regularity Reminder
+  confession_reminder_interval_days?: number; // Target interval in days (default: 30)
+  confession_reminder_enabled?: boolean;      // Toggle in-app reminders (default: true)
+  
   assigned_priest_ids?: string[]; // For secretary role: list of priest IDs managed by this secretary
   created_at?: string;
   updated_at?: string;
+}
+
+export type ConfessionRhythmStatus = 'on_track' | 'due_soon' | 'overdue' | 'no_history';
+
+export interface ConfessionRhythmInfo {
+  daysSinceLast: number | null;
+  intervalDays: number;
+  daysRemaining: number | null;
+  targetDate: string | null;
+  percentageElapsed: number;
+  status: ConfessionRhythmStatus;
+  hasUpcomingBooking: boolean;
+  lastConfessionDate: string | null;
 }
 
 export interface PriestProfile {

@@ -11,12 +11,14 @@ import { UserBookingsHistory } from './components/user/UserBookingsHistory';
 import { PriestDashboard } from './components/priest/PriestDashboard';
 import { SecretaryDashboard } from './components/secretary/SecretaryDashboard';
 import { SuperAdminDashboard } from './components/admin/SuperAdminDashboard';
+import { MemberProfilePage } from './components/user/MemberProfilePage';
 import { ParishAnnouncementBanner } from './components/common/ParishAnnouncementBanner';
 
 const MainAppContent: React.FC = () => {
   const { 
     currentUser, 
     isLoggedIn, 
+    priests,
     selectedPriestForBooking, 
     setSelectedPriestForBooking 
   } = useAppStore();
@@ -61,31 +63,40 @@ const MainAppContent: React.FC = () => {
           />
         )}
 
-        {/* General User (Member) Views */}
+        {/* General User (Member) Views: Exclusive to their Confession Father */}
         {currentUser.role === 'general' && (
           <>
-            {activeTab === 'priests' && (
-              selectedPriestForBooking ? (
-                <PriestAppointmentsPage
-                  priest={selectedPriestForBooking}
-                  onBack={() => setSelectedPriestForBooking(null)}
-                  onBookingComplete={() => {
-                    setSelectedPriestForBooking(null);
-                    setActiveTab('my_appointments');
-                  }}
-                />
-              ) : (
+            {activeTab === 'priests' && (() => {
+              const myFather = priests.find(p => p.id === currentUser.confession_father_id) || priests[0];
+              return (
                 <>
                   <LiturgicalBanner />
-                  <PriestSelector
-                    onSelectPriest={(priest) => setSelectedPriestForBooking(priest)}
-                  />
+                  {myFather ? (
+                    <PriestAppointmentsPage
+                      priest={myFather}
+                      isExclusiveConfessionFather={true}
+                      onBookingComplete={() => {
+                        setActiveTab('my_appointments');
+                      }}
+                    />
+                  ) : (
+                    <div className="p-8 bg-white border border-stone-200 rounded-3xl text-center text-sm text-stone-500">
+                      No confession fathers available.
+                    </div>
+                  )}
                 </>
-              )
-            )}
+              );
+            })()}
 
             {activeTab === 'my_appointments' && (
               <UserBookingsHistory />
+            )}
+
+            {activeTab === 'my_profile' && (
+              <MemberProfilePage
+                onNavigateToBooking={() => setActiveTab('priests')}
+                onNavigateToAppointments={() => setActiveTab('my_appointments')}
+              />
             )}
           </>
         )}
