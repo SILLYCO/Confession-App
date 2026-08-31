@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { useAppStore } from '../../lib/store';
 import { User, Slot } from '../../types/database';
@@ -8,7 +8,10 @@ import {
   Calendar as CalendarIcon, 
   Clock, 
   AlertCircle, 
-  Info
+  Info,
+  Sparkles,
+  CheckCircle2,
+  Filter
 } from 'lucide-react';
 
 interface SlotCalendarProps {
@@ -20,6 +23,7 @@ export const SlotCalendar: React.FC<SlotCalendarProps> = ({ priest, onBookingCom
   const { t, language, formatDate, formatTime, getDayName } = useTranslation();
   const { 
     currentUser, 
+    bookings,
     getPriestSlots, 
     getPriestProfile, 
     getUserActiveBooking 
@@ -41,14 +45,34 @@ export const SlotCalendar: React.FC<SlotCalendarProps> = ({ priest, onBookingCom
   const [selectedDate, setSelectedDate] = useState<Date>(rollingDays[0]);
   const [selectedSlotForBooking, setSelectedSlotForBooking] = useState<Slot | null>(null);
   const [showActiveBookingBlockedModal, setShowActiveBookingBlockedModal] = useState(false);
-
-  const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+  const [showAvailableOnly, setShowAvailableOnly] = useState(false);
 
   // Fetch all 14-day slots for this priest
   const allSlots = useMemo(() => {
     return getPriestSlots(priest.id, new Date(), 14);
   }, [getPriestSlots, priest.id]);
 
+  // Filter displayed days based on "Show Available Days Only" checkbox
+  const displayedDays = useMemo(() => {
+    if (!showAvailableOnly) return rollingDays;
+    return rollingDays.filter(day => {
+      const dateStr = format(day, 'yyyy-MM-dd');
+      const daySlots = allSlots.filter(s => s.date === dateStr && s.status !== 'unavailable');
+      return daySlots.some(s => s.status === 'available');
+    });
+  }, [rollingDays, showAvailableOnly, allSlots]);
+
+  // Auto-adjust selected date if current selection is filtered out by the toggle
+  useEffect(() => {
+    if (displayedDays.length > 0) {
+      const isCurrentSelectedVisible = displayedDays.some(d => isSameDay(d, selectedDate));
+      if (!isCurrentSelectedVisible) {
+        setSelectedDate(displayedDays[0]);
+      }
+    }
+  }, [displayedDays, selectedDate]);
+
+  const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
   const isSelectedToday = isSameDay(selectedDate, new Date());
 
   // Slots on selected date (filter out expired past slots with status 'unavailable')
@@ -59,6 +83,18 @@ export const SlotCalendar: React.FC<SlotCalendarProps> = ({ priest, onBookingCom
   }, [allSlots, selectedDateStr]);
 
   const availableCountOnSelectedDay = daySlots.filter(s => s.status === 'available').length;
+
+  // Helper to check if a slot is booked by current user
+  const isSlotBookedByMe = (slot: Slot) => {
+    if (!currentUser) return false;
+    return bookings.some(b => 
+      b.user_id === currentUser.id && 
+      b.priest_id === priest.id && 
+      b.date === slot.date && 
+      b.start_time.startsWith(slot.start_time) && 
+      b.status === 'confirmed'
+    );
+  };
 
   const handleSlotClick = (slot: Slot) => {
     if (slot.status !== 'available') return;
@@ -75,8 +111,8 @@ export const SlotCalendar: React.FC<SlotCalendarProps> = ({ priest, onBookingCom
   return (
     <div className="space-y-6">
       
-      {/* Calendar Header / Priest summary */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white border border-stone-200 shadow-sm">
+      {/* Calendar Header / Priest summary & Legend */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-3xl bg-white border border-stone-200 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-bold text-navy-950">
@@ -91,72 +127,101 @@ export const SlotCalendar: React.FC<SlotCalendarProps> = ({ priest, onBookingCom
           </p>
         </div>
 
-        <div className="flex items-center gap-3 text-xs text-stone-600">
+        {/* Legend */}
+        <div className="flex flex-wrap items-center gap-3 text-xs text-stone-600">
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
             <span>{t.status.available}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
+            <span className="w-3 h-3 rounded-full bg-stone-300 inline-block"></span>
             <span>{t.status.booked}</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-gold-100 border border-gold-300 text-navy-950 font-bold">
+            <span className="w-2.5 h-2.5 rounded-full bg-gold-500 inline-block"></span>
+            <span>{t.userFlow.yourBookedSlotBadge}</span>
           </div>
         </div>
       </div>
 
-      {/* 14-Day Horizon Horizontal Date Picker */}
-      <div className="relative">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-bold text-stone-700 uppercase tracking-wider flex items-center gap-1.5">
+      {/* 14-Day Horizon Horizontal Date Picker & "Show Available Days Only" Filter */}
+      <div className="relative space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-stone-700 uppercase tracking-wider">
             <CalendarIcon className="w-3.5 h-3.5 text-gold-600" />
             <span>{language === 'ar' ? 'فترة الحجز المتاحة (14 يوماً)' : '14-Day Rolling Horizon'}</span>
-          </span>
-          <span className="text-xs text-stone-400">
-            {formatDate(rollingDays[0])} — {formatDate(rollingDays[13])}
-          </span>
+            <span className="text-[11px] text-stone-400 font-normal ml-1">
+              ({formatDate(rollingDays[0])} — {formatDate(rollingDays[13])})
+            </span>
+          </div>
+
+          {/* "Show Available Days Only" Checkbox */}
+          <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white hover:bg-stone-50 border border-stone-300 text-stone-800 cursor-pointer shadow-sm transition select-none text-xs font-bold self-start sm:self-auto">
+            <input
+              type="checkbox"
+              checked={showAvailableOnly}
+              onChange={(e) => setShowAvailableOnly(e.target.checked)}
+              className="w-4 h-4 rounded text-gold-600 focus:ring-gold-500 accent-gold-600 cursor-pointer"
+            />
+            <span className="flex items-center gap-1">
+              <Filter className="w-3 h-3 text-gold-600" />
+              <span>{t.userFlow.showAvailableDaysOnly}</span>
+            </span>
+          </label>
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto pb-3 pt-1 scrollbar-none">
-          {rollingDays.map((day) => {
-            const dateStr = format(day, 'yyyy-MM-dd');
-            const isSelected = isSameDay(day, selectedDate);
-            const slotsForThisDay = allSlots.filter(s => s.date === dateStr);
-            const availCount = slotsForThisDay.filter(s => s.status === 'available').length;
+        {/* Horizontal Days Scroll */}
+        {displayedDays.length === 0 ? (
+          <div className="p-6 rounded-2xl bg-white border border-stone-200 text-center text-xs text-stone-500 space-y-1">
+            <p className="font-bold text-stone-700">{t.userFlow.noAvailableDays}</p>
+            <p className="text-[11px] text-stone-400">
+              {language === 'ar' ? 'يمكنك إلغاء تفعيل الفلتر لعرض كامل الـ 14 يوماً.' : 'You can uncheck the filter to view all 14 days.'}
+            </p>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 overflow-x-auto pb-3 pt-1 scrollbar-none">
+            {displayedDays.map((day) => {
+              const dateStr = format(day, 'yyyy-MM-dd');
+              const isSelected = isSameDay(day, selectedDate);
+              const slotsForThisDay = allSlots.filter(s => s.date === dateStr);
+              const availCount = slotsForThisDay.filter(s => s.status === 'available').length;
 
-            return (
-              <button
-                key={dateStr}
-                onClick={() => setSelectedDate(day)}
-                className={`shrink-0 flex flex-col items-center justify-center p-3 rounded-2xl min-w-[85px] border transition-all ${
-                  isSelected
-                    ? 'bg-navy-950 text-white border-navy-950 shadow-md scale-105 ring-2 ring-gold-400'
-                    : 'bg-white hover:bg-stone-50 border-stone-200 text-stone-700 hover:border-stone-300'
-                }`}
-              >
-                <span className="text-[11px] font-medium opacity-80">
-                  {getDayName(day.getDay())}
-                </span>
-                <span className="text-lg font-bold my-0.5">
-                  {format(day, 'd')}
-                </span>
-                <span className="text-[10px] opacity-70">
-                  {format(day, 'MMM')}
-                </span>
+              return (
+                <button
+                  key={dateStr}
+                  onClick={() => setSelectedDate(day)}
+                  className={`shrink-0 flex flex-col items-center justify-center p-3 rounded-2xl min-w-[85px] border transition-all ${
+                    isSelected
+                      ? 'bg-navy-950 text-white border-navy-950 shadow-md scale-105 ring-2 ring-gold-400'
+                      : 'bg-white hover:bg-stone-50 border-stone-200 text-stone-700 hover:border-stone-300'
+                  }`}
+                >
+                  <span className="text-[11px] font-medium opacity-80">
+                    {getDayName(day.getDay())}
+                  </span>
+                  <span className="text-lg font-bold my-0.5">
+                    {format(day, 'd')}
+                  </span>
+                  <span className="text-[10px] opacity-70">
+                    {format(day, 'MMM')}
+                  </span>
 
-                {availCount > 0 ? (
-                  <span className={`mt-1 text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
-                    isSelected ? 'bg-gold-500 text-navy-950' : 'bg-emerald-100 text-emerald-800'
-                  }`}>
-                    {availCount} {t.status.available}
-                  </span>
-                ) : (
-                  <span className="mt-1 text-[10px] text-stone-400">
-                    —
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+                  {availCount > 0 ? (
+                    <span className={`mt-1 text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                      isSelected ? 'bg-gold-500 text-navy-950' : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      {availCount} {t.status.available}
+                    </span>
+                  ) : (
+                    <span className="mt-1 text-[10px] text-stone-400">
+                      —
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Selected Day Slots Grid */}
@@ -203,25 +268,59 @@ export const SlotCalendar: React.FC<SlotCalendarProps> = ({ priest, onBookingCom
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {daySlots.map((slot) => {
               const isAvailable = slot.status === 'available';
+              const isMyBooking = isSlotBookedByMe(slot);
 
+              // 1. Current user's confirmed booking slot -> Highlighted in rich liturgical gold!
+              if (isMyBooking) {
+                return (
+                  <div
+                    key={slot.id}
+                    className="p-3 rounded-2xl flex flex-col items-center justify-center text-center transition-all bg-gradient-to-br from-gold-400 via-amber-400 to-gold-500 text-navy-950 font-bold border-2 border-gold-300 shadow-md ring-2 ring-gold-400/60 scale-105"
+                  >
+                    <div className="flex items-center gap-1 text-navy-950 mb-0.5">
+                      <Sparkles className="w-3.5 h-3.5 text-navy-950 shrink-0" />
+                      <span className="text-sm font-bold">
+                        {formatTime(slot.start_time)}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-extrabold text-navy-950 bg-white/50 px-2 py-0.5 rounded-full mt-0.5">
+                      {t.userFlow.yourBookedSlotBadge}
+                    </span>
+                  </div>
+                );
+              }
+
+              // 2. Available slot -> Clickable green/stone button
+              if (isAvailable) {
+                return (
+                  <button
+                    key={slot.id}
+                    onClick={() => handleSlotClick(slot)}
+                    className="p-3 rounded-2xl flex flex-col items-center justify-center text-center transition-all bg-stone-50 hover:bg-gold-500 hover:text-navy-950 border border-stone-200 hover:border-gold-500 shadow-sm hover:scale-105 font-bold text-navy-950 cursor-pointer"
+                  >
+                    <span className="text-sm font-bold">
+                      {formatTime(slot.start_time)}
+                    </span>
+                    <span className="text-[10px] opacity-75 mt-0.5 text-emerald-700">
+                      {t.status.available}
+                    </span>
+                  </button>
+                );
+              }
+
+              // 3. Booked by someone else -> Dimmed & line-through
               return (
-                <button
+                <div
                   key={slot.id}
-                  disabled={!isAvailable}
-                  onClick={() => handleSlotClick(slot)}
-                  className={`p-3 rounded-2xl flex flex-col items-center justify-center text-center transition-all ${
-                    isAvailable
-                      ? 'bg-stone-50 hover:bg-gold-500 hover:text-navy-950 border border-stone-200 hover:border-gold-500 shadow-sm hover:scale-105 font-bold text-navy-950 cursor-pointer'
-                      : 'bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed line-through opacity-70'
-                  }`}
+                  className="p-3 rounded-2xl flex flex-col items-center justify-center text-center transition-all bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed line-through opacity-70"
                 >
                   <span className="text-sm font-bold">
                     {formatTime(slot.start_time)}
                   </span>
                   <span className="text-[10px] opacity-75 mt-0.5">
-                    {isAvailable ? t.status.available : t.status.booked}
+                    {t.status.booked}
                   </span>
-                </button>
+                </div>
               );
             })}
           </div>

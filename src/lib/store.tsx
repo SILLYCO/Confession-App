@@ -95,6 +95,7 @@ interface AppStoreContextType {
     newStatus: 'completed' | 'no_show', 
     attendanceNotes?: string
   ) => Promise<{ success: boolean; error?: string }>;
+  updatePriestPrivateNotes: (bookingId: string, privateNotes: string) => Promise<{ success: boolean; error?: string }>;
   // Smart Schedule Diff & Actions
   previewScheduleChangeImpact: (
     priestId: string, 
@@ -190,23 +191,36 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Refresh priest title and remove old dummy test priests
+          // Refresh priest title, remove dummy priests, and merge default profile fields for mock accounts
           const cleaned = parsed.map((u: User) => {
-            if (u.id === '11111111-1111-1111-1111-111111111111' || u.name === 'Fr. Bishoy Ahdy') {
-              return { ...u, title_ar: 'القس بيشوي عهدي', title_en: 'Fr. Bishoy Ahdy' };
+            const defaultMock = MOCK_USERS.find(m => m.id === u.id || m.email === u.email);
+            if (!defaultMock) return u;
+            const merged: User = { ...defaultMock };
+            for (const key of Object.keys(u) as (keyof User)[]) {
+              const val = u[key];
+              if (val !== undefined && val !== null && val !== '') {
+                (merged as any)[key] = val;
+              }
             }
-            return u;
+            if (merged.id === '11111111-1111-1111-1111-111111111111' || merged.name === 'Fr. Bishoy Ahdy') {
+              merged.title_ar = 'القس بيشوي عهدي';
+              merged.title_en = 'Fr. Bishoy Ahdy';
+            }
+            return merged;
           }).filter((u: User) => 
             u.name !== 'Fr. Athanasius Hanna' && 
             u.name !== 'Fr. Menas Shenouda' && 
             u.title_ar !== 'القمص أثناسيوس حنا' &&
             u.title_ar !== 'الراهب القس مينا شنودة'
           );
-          const hasPriests = cleaned.some((u: User) => u.role === 'priest');
-          if (!hasPriests) {
-            const realPriests = MOCK_USERS.filter(u => u.role === 'priest');
-            return [...cleaned, ...realPriests];
+
+          // If any standard mock users are missing from saved array, append them
+          for (const mockUser of MOCK_USERS) {
+            if (!cleaned.some(u => u.id === mockUser.id || u.email === mockUser.email)) {
+              cleaned.push(mockUser);
+            }
           }
+
           return cleaned;
         }
       } catch {}
@@ -217,7 +231,11 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [currentUser, setCurrentUserState] = useState<User | null>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_CURRENT_USER);
     if (saved) {
-      try { return JSON.parse(saved); } catch {}
+      try { 
+        const parsed = JSON.parse(saved);
+        const defaultMock = MOCK_USERS.find(m => m.id === parsed.id || m.email === parsed.email);
+        return defaultMock ? { ...defaultMock, ...parsed } : parsed;
+      } catch {}
     }
     return null;
   });
@@ -244,7 +262,20 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const [bookings, setBookings] = useState<Booking[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BOOKINGS);
-    return saved ? JSON.parse(saved) : INITIAL_MOCK_BOOKINGS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasCompleted = parsed.some((b: Booking) => b.status === 'completed');
+          if (!hasCompleted) {
+            const missing = INITIAL_MOCK_BOOKINGS.filter((m: Booking) => !parsed.some((b: Booking) => b.id === m.id));
+            return [...parsed, ...missing];
+          }
+          return parsed;
+        }
+      } catch {}
+    }
+    return INITIAL_MOCK_BOOKINGS;
   });
 
   const [notificationLogs, setNotificationLogs] = useState<NotificationLog[]>(() => {
@@ -638,11 +669,15 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Enriched bookings with joined user and priest details
   const enrichedBookings = useMemo(() => {
-    return bookings.map(b => ({
-      ...b,
-      user: b.user || allUsers.find(u => u.id === b.user_id),
-      priest: b.priest || allUsers.find(u => u.id === b.priest_id),
-    }));
+    return bookings.map(b => {
+      const liveUser = allUsers.find(u => u.id === b.user_id || (b.user && u.email === b.user.email));
+      const livePriest = allUsers.find(u => u.id === b.priest_id || (b.priest && u.email === b.priest.email));
+      return {
+        ...b,
+        user: liveUser || b.user,
+        priest: livePriest || b.priest,
+      };
+    });
   }, [bookings, allUsers]);
 
   // Get active upcoming booking for user
@@ -1099,6 +1134,49 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     } catch (err: any) {
       return { success: false, error: err.message || 'Failed to update attendance' };
+    }
+  }, [bookings]);
+
+  // ----------------------------------------------------------------------------
+  // Priest Confidential Private Notes
+  // ----------------------------------------------------------------------------
+  const updatePriestPrivateNotes = useCallback(async (
+    bookingId: string, 
+    privateNotes: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const targetBooking = bookings.find(b => b.id === bookingId);
+      if (!targetBooking) {
+        return { success: false, error: 'Booking not found' };
+      }
+
+      if (supabase && isSupabaseConfigured) {
+        const { error: noteErr } = await supabase
+          .from('bookings')
+          .update({
+            priest_private_notes: privateNotes
+          })
+          .eq('id', bookingId);
+
+        if (noteErr) {
+          console.error('Supabase update priest private notes error:', noteErr);
+        }
+      }
+
+      const updatedBookings = bookings.map(b => {
+        if (b.id === bookingId) {
+          return {
+            ...b,
+            priest_private_notes: privateNotes,
+          };
+        }
+        return b;
+      });
+
+      setBookings(updatedBookings);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to update priest private notes' };
     }
   }, [bookings]);
 
@@ -1866,6 +1944,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         bookSlot,
         cancelBooking,
         updateBookingAttendance,
+        updatePriestPrivateNotes,
         previewScheduleChangeImpact,
         updatePriestSchedule,
         addPriestOverride,

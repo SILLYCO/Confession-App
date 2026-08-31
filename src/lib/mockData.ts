@@ -120,8 +120,12 @@ export const MOCK_PRIEST_PROFILES: PriestProfile[] = [
 
 const today = new Date();
 const tomorrowStr = format(addDays(today, 1), 'yyyy-MM-dd');
+const twentyDaysAgoStr = format(addDays(today, -20), 'yyyy-MM-dd');
+const fiftyDaysAgoStr = format(addDays(today, -50), 'yyyy-MM-dd');
+const fifteenDaysAgoStr = format(addDays(today, -15), 'yyyy-MM-dd');
 
 export const INITIAL_MOCK_BOOKINGS: Booking[] = [
+  // Peter Mark Confirmed upcoming tomorrow
   {
     id: 'book-001',
     user_id: '44444444-4444-4444-4444-444444444444', // Peter Mark
@@ -131,8 +135,65 @@ export const INITIAL_MOCK_BOOKINGS: Booking[] = [
     start_time: '17:00',
     end_time: '17:20',
     status: 'confirmed',
-    notes: 'Regular monthly confession and spiritual guidance.',
+    notes: 'حجز لمتابعة الاعتراف الشهري والإرشاد الروحي.',
+    priest_private_notes: 'شماس وخادم ملتزم - تم إرشاده بمواظبة صلوات الأجبية وقراءة إنجيل يوحنا يومياً.',
     created_at: new Date(Date.now() - 86400000).toISOString(),
+  },
+  // Peter Mark past completed 20 days ago
+  {
+    id: 'book-002',
+    user_id: '44444444-4444-4444-4444-444444444444',
+    priest_id: '11111111-1111-1111-1111-111111111111',
+    slot_id: `slot_11111111-1111-1111-1111-111111111111_${twentyDaysAgoStr}_1720`,
+    date: twentyDaysAgoStr,
+    start_time: '17:20',
+    end_time: '17:40',
+    status: 'completed',
+    completed_at: `${twentyDaysAgoStr}T17:38:00Z`,
+    notes: 'جلسة اعتراف دورية ومراجعة قانون الصوم.',
+    priest_private_notes: 'جلسة اعتراف مريحة ونوال الحل والبركة بعد مناقشة ترتيبات الخدمة.',
+    created_at: new Date(Date.now() - 25 * 86400000).toISOString(),
+  },
+  // Peter Mark past completed 50 days ago
+  {
+    id: 'book-003',
+    user_id: '44444444-4444-4444-4444-444444444444',
+    priest_id: '11111111-1111-1111-1111-111111111111',
+    slot_id: `slot_11111111-1111-1111-1111-111111111111_${fiftyDaysAgoStr}_1800`,
+    date: fiftyDaysAgoStr,
+    start_time: '18:00',
+    end_time: '18:20',
+    status: 'completed',
+    completed_at: `${fiftyDaysAgoStr}T18:20:00Z`,
+    notes: 'جلسة اعتراف سابقة.',
+    created_at: new Date(Date.now() - 55 * 86400000).toISOString(),
+  },
+  // Mary George Confirmed upcoming
+  {
+    id: 'book-004',
+    user_id: '55555555-5555-5555-5555-555555555555', // Mary George
+    priest_id: '11111111-1111-1111-1111-111111111111',
+    slot_id: `slot_11111111-1111-1111-1111-111111111111_${tomorrowStr}_1800`,
+    date: tomorrowStr,
+    start_time: '18:00',
+    end_time: '18:20',
+    status: 'confirmed',
+    notes: 'طلب إرشاد أسري مع جلسة الاعتراف.',
+    priest_private_notes: 'متابعة الصلاة الأسرية وقانون التوبة.',
+    created_at: new Date(Date.now() - 48 * 3600000).toISOString(),
+  },
+  // Mary George past completed 15 days ago
+  {
+    id: 'book-005',
+    user_id: '55555555-5555-5555-5555-555555555555',
+    priest_id: '11111111-1111-1111-1111-111111111111',
+    slot_id: `slot_11111111-1111-1111-1111-111111111111_${fifteenDaysAgoStr}_1830`,
+    date: fifteenDaysAgoStr,
+    start_time: '18:30',
+    end_time: '18:50',
+    status: 'completed',
+    completed_at: `${fifteenDaysAgoStr}T18:48:00Z`,
+    created_at: new Date(Date.now() - 20 * 86400000).toISOString(),
   }
 ];
 

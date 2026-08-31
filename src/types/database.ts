@@ -123,6 +123,7 @@ export interface Booking {
   cancelled_at?: string;
   completed_at?: string;
   attendance_notes?: string;
+  priest_private_notes?: string; // Strictly confidential private pastoral notes
   notes?: string;
   created_at: string;
   // Joined

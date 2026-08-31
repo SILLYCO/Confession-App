@@ -339,6 +339,9 @@ export interface Translations {
     pastAppointments: string;
     noUpcomingAppointments: string;
     rollingWindowNotice: string;
+    showAvailableDaysOnly: string;
+    yourBookedSlotBadge: string;
+    noAvailableDays: string;
   };
   priestFlow: {
     manageSchedule: string;
@@ -386,6 +389,16 @@ export interface Translations {
     markNoShowSuccess: string;
     totalCompleted: string;
     totalNoShow: string;
+    showTodayOnly: string;
+    viewSpiritualProfile: string;
+    confidentialNotesTitle: string;
+    confidentialNotesNotice: string;
+    confidentialNotesPlaceholder: string;
+    daysSinceLastConfession: string;
+    noPreviousConfessions: string;
+    saveNotesBtn: string;
+    notesSavedSuccess: string;
+    memberDossierTitle: string;
   };
   secretaryFlow: {
     overviewTitle: string;
@@ -768,6 +781,9 @@ const translations: Record<Language, Translations> = {
       pastAppointments: "Past & Cancelled Bookings",
       noUpcomingAppointments: "You do not have any upcoming confession appointments.",
       rollingWindowNotice: "Showing bookable slots for the rolling 14-day window.",
+      showAvailableDaysOnly: "Show Available Days only",
+      yourBookedSlotBadge: "Your Reserved Slot ✨",
+      noAvailableDays: "No days with available confession slots within the next 14 days.",
     },
     priestFlow: {
       manageSchedule: "Configure Availability & Confession Duration",
@@ -815,6 +831,16 @@ const translations: Record<Language, Translations> = {
       markNoShowSuccess: "Confession marked as No-Show. Slot archived.",
       totalCompleted: "Completed",
       totalNoShow: "No-Show",
+      showTodayOnly: "Show Today's Appointments Only",
+      viewSpiritualProfile: "Spiritual Profile & Notes",
+      confidentialNotesTitle: "Father's Confidential Pastoral Notes",
+      confidentialNotesNotice: "These pastoral notes are strictly confidential and accessible exclusively to Father. Neither the member nor church administration can view them.",
+      confidentialNotesPlaceholder: "Write your pastoral guidance, spiritual canon, or follow-up notes for this member here...",
+      daysSinceLastConfession: "{days} days since last confession",
+      noPreviousConfessions: "This is the member's first recorded confession session.",
+      saveNotesBtn: "Save Confidential Notes",
+      notesSavedSuccess: "Pastoral notes saved successfully!",
+      memberDossierTitle: "Member Spiritual & Personal Dossier",
     },
     secretaryFlow: {
       overviewTitle: "Church Secretary Operations Center",
@@ -1195,6 +1221,9 @@ const translations: Record<Language, Translations> = {
       pastAppointments: "المواعيد السابقة والملغاة",
       noUpcomingAppointments: "ليس لديك أي مواعيد اعتراف قادمة حالياً.",
       rollingWindowNotice: "يتم عرض المواعيد المتاحة لأسبوعين قادمين بشكل دوري متجدد.",
+      showAvailableDaysOnly: "عرض الأيام المتاحة فقط",
+      yourBookedSlotBadge: "موعدك المحجوز ✨",
+      noAvailableDays: "لا توجد أيام بها مواعيد اعتراف متاحة حالياً ضمن الـ 14 يوماً القادمة.",
     },
     priestFlow: {
       manageSchedule: "إعداد جدول التواجد ومتوسط مدة الاعتراف",
@@ -1242,6 +1271,16 @@ const translations: Record<Language, Translations> = {
       markNoShowSuccess: "تم تسجيل عدم الحضور وأرشفة الموعد.",
       totalCompleted: "مكتمل",
       totalNoShow: "لم يحضر",
+      showTodayOnly: "عرض مواعيد اليوم فقط",
+      viewSpiritualProfile: "الملف الروحي والملاحظات",
+      confidentialNotesTitle: "ملاحظات الأب الكاهن السرية والرعوية",
+      confidentialNotesNotice: "هذه الملاحظات خاصة وسرية بقدس أبونا فقط، ولا يمكن لأي مستخدم آخر أو إدارة الكنيسة الاطلاع عليها.",
+      confidentialNotesPlaceholder: "اكتب إرشاداتك الرعوية وقانون التوبة أو ملاحظات المتابعة الروحية لهذا المعترف هنا...",
+      daysSinceLastConfession: "مضى {days} يوماً منذ آخر اعتراف",
+      noPreviousConfessions: "هذه هي أول جلسة اعتراف مسجلة للمعترف.",
+      saveNotesBtn: "حفظ الملاحظات السرية",
+      notesSavedSuccess: "تم حفظ الملاحظات السرية بنجاح!",
+      memberDossierTitle: "الملف الروحي والشخصي للمعترف",
     },
     secretaryFlow: {
       overviewTitle: "مركز عمليات سكرتارية الكنيسة",
