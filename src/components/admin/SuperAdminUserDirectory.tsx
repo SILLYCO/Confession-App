@@ -3,6 +3,7 @@ import { useTranslation } from '../../lib/i18n';
 import { useAppStore } from '../../lib/store';
 import { User, UserRole, DEFAULT_SKELETON_AVATAR, Gender, MaritalStatus, ChurchServiceRole } from '../../types/database';
 import { Badge } from '../common/Badge';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 import { UserDetailsModal } from './UserDetailsModal';
 import { 
   UserPlus, 
@@ -596,7 +597,12 @@ export const SuperAdminUserDirectory: React.FC<SuperAdminUserDirectoryProps> = (
                         
                         {/* View Profile */}
                         <button
-                          onClick={() => setSelectedUserForDetails(user)}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedUserForDetails(user);
+                          }}
                           className="p-2 rounded-xl text-stone-600 hover:text-navy-950 hover:bg-stone-100 transition border border-stone-200"
                           title={t.adminFlow.viewDetails}
                         >
@@ -1621,19 +1627,21 @@ export const SuperAdminUserDirectory: React.FC<SuperAdminUserDirectoryProps> = (
       )}
 
       {/* USER DETAILS MODAL */}
-      <UserDetailsModal
-        user={selectedUserForDetails ? (allUsers.find(u => u.id === selectedUserForDetails.id) || selectedUserForDetails) : null}
-        isOpen={!!selectedUserForDetails}
-        onClose={() => setSelectedUserForDetails(null)}
-        onEditUser={(user) => {
-          setSelectedUserForDetails(null);
-          handleOpenEditModal(user);
-        }}
-        onResetPassword={(user) => {
-          setSelectedUserForDetails(null);
-          handleOpenResetPasswordModal(user);
-        }}
-      />
+      <ErrorBoundary fallbackTitle={language === 'ar' ? 'حدث خطأ أثناء عرض بيانات المستخدم' : 'Error displaying user details'}>
+        <UserDetailsModal
+          user={selectedUserForDetails ? (allUsers.find(u => u.id === selectedUserForDetails.id) || selectedUserForDetails) : null}
+          isOpen={!!selectedUserForDetails}
+          onClose={() => setSelectedUserForDetails(null)}
+          onEditUser={(user) => {
+            setSelectedUserForDetails(null);
+            handleOpenEditModal(user);
+          }}
+          onResetPassword={(user) => {
+            setSelectedUserForDetails(null);
+            handleOpenResetPasswordModal(user);
+          }}
+        />
+      </ErrorBoundary>
 
     </div>
   );

@@ -13,6 +13,7 @@ import { SecretaryDashboard } from './components/secretary/SecretaryDashboard';
 import { SuperAdminDashboard } from './components/admin/SuperAdminDashboard';
 import { MemberProfilePage } from './components/user/MemberProfilePage';
 import { ParishAnnouncementBanner } from './components/common/ParishAnnouncementBanner';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 const MainAppContent: React.FC = () => {
   const { 
@@ -51,16 +52,23 @@ const MainAppContent: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
-        
-        {/* Parish Broadcasts & Announcements Banner */}
-        <ParishAnnouncementBanner />
+        <ErrorBoundary>
+          {/* Parish Broadcasts & Announcements Banner */}
+          <ParishAnnouncementBanner />
 
         {/* Super Admin Dashboard */}
         {currentUser.role === 'admin' && (
-          <SuperAdminDashboard
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-          />
+          activeTab === 'my_profile' ? (
+            <MemberProfilePage
+              onNavigateToBooking={() => setActiveTab('admin_users')}
+              onNavigateToAppointments={() => setActiveTab('admin_overview')}
+            />
+          ) : (
+            <SuperAdminDashboard
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
+          )
         )}
 
         {/* General User (Member) Views: Exclusive to their Confession Father */}
@@ -113,7 +121,7 @@ const MainAppContent: React.FC = () => {
         {currentUser.role === 'secretary' && (
           <SecretaryDashboard />
         )}
-
+        </ErrorBoundary>
       </main>
 
       {/* Footer */}

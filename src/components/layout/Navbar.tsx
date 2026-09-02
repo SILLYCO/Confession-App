@@ -273,14 +273,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               {/* User Info & Avatar */}
               <div 
                 onClick={() => {
-                  if (currentUser.role === 'general') {
+                  if (currentUser.role === 'general' || currentUser.role === 'admin') {
                     handleTabClick('my_profile');
+                  } else if (currentUser.role === 'priest') {
+                    handleTabClick('priest_profile');
                   }
                 }}
-                className={`hidden sm:flex items-center gap-2 ps-2 border-s border-stone-200 shrink-0 max-w-[150px] lg:max-w-[200px] ${
-                  currentUser.role === 'general' ? 'cursor-pointer hover:opacity-80 transition' : ''
-                }`}
-                title={currentUser.role === 'general' ? t.nav.myProfile : undefined}
+                className="hidden sm:flex items-center gap-2 ps-2 border-s border-stone-200 shrink-0 max-w-[150px] lg:max-w-[200px] cursor-pointer hover:opacity-80 transition"
+                title={t.nav.myProfile}
               >
                 <img
                   src={currentUser.avatar_url || DEFAULT_SKELETON_AVATAR}

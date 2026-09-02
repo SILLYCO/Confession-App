@@ -60,27 +60,39 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
   const [selectedFatherId, setSelectedFatherId] = useState(user?.confession_father_id || '');
   const [isSavingFather, setIsSavingFather] = useState(false);
 
+  React.useEffect(() => {
+    if (user?.confession_father_id) {
+      setSelectedFatherId(user.confession_father_id);
+    }
+  }, [user?.confession_father_id]);
+
+  // Secretary assigned priests (Unconditional hook call before any return)
+  const assignedPriestsList = useMemo(() => {
+    if (!user || user.role !== 'secretary' || !user.assigned_priest_ids || !Array.isArray(user.assigned_priest_ids)) return [];
+    return (allUsers || []).filter(u => user.assigned_priest_ids?.includes(u.id));
+  }, [user, allUsers]);
+
   if (!isOpen || !user) return null;
 
   const priestProfile = user.role === 'priest' 
-    ? priestProfiles.find(p => p.priest_id === user.id) 
+    ? (priestProfiles || []).find(p => p.priest_id === user.id) 
     : undefined;
 
   // Member bookings
-  const userBookings = user.role === 'general' ? getUserBookings(user.id) : [];
-  const activeBooking = user.role === 'general' ? getUserActiveBooking(user.id) : undefined;
-  const pastBookings = userBookings.filter(b => b.id !== activeBooking?.id);
+  const userBookings = (user.role === 'general' && typeof getUserBookings === 'function') 
+    ? (getUserBookings(user.id) || []) 
+    : [];
+  const activeBooking = (user.role === 'general' && typeof getUserActiveBooking === 'function') 
+    ? getUserActiveBooking(user.id) 
+    : undefined;
+  const pastBookings = (userBookings || []).filter(b => b.id !== activeBooking?.id);
 
   // Priest bookings
-  const priestBookings = user.role === 'priest' ? getPriestBookings(user.id) : [];
-  const priestCompletedCount = priestBookings.filter(b => b.status === 'completed').length;
-  const priestConfirmedCount = priestBookings.filter(b => b.status === 'confirmed').length;
-
-  // Secretary assigned priests
-  const assignedPriestsList = useMemo(() => {
-    if (user.role !== 'secretary' || !user.assigned_priest_ids) return [];
-    return allUsers.filter(u => user.assigned_priest_ids?.includes(u.id));
-  }, [user, allUsers]);
+  const priestBookings = (user.role === 'priest' && typeof getPriestBookings === 'function') 
+    ? (getPriestBookings(user.id) || []) 
+    : [];
+  const priestCompletedCount = (priestBookings || []).filter(b => b.status === 'completed').length;
+  const priestConfirmedCount = (priestBookings || []).filter(b => b.status === 'confirmed').length;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in overflow-y-auto">
@@ -520,6 +532,136 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
                     ))}
                   </div>
                 )}
+              </div>
+
+            </div>
+          )}
+
+          {/* SUPER ADMIN VIEW */}
+          {user.role === 'admin' && (
+            <div className="space-y-6">
+              
+              {/* System Authority Banner */}
+              <div className="bg-gradient-to-br from-navy-950 via-slate-900 to-navy-900 text-white rounded-2xl p-5 border border-gold-500/40 shadow-md space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-gold-500/20 text-gold-400 border border-gold-500/30">
+                      👑
+                    </span>
+                    <span className="font-bold font-serif text-sm text-gold-300">
+                      {language === 'ar' ? 'حساب مدير النظام الأكبر (Super Admin)' : 'Super Administrator Account'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-gold-400/20 text-gold-300 border border-gold-400/30">
+                    {language === 'ar' ? 'كامل الصلاحيات' : 'Full Authority'}
+                  </span>
+                </div>
+                <p className="text-xs text-stone-300 leading-relaxed">
+                  {language === 'ar'
+                    ? 'يتمتع مدير النظام بالصلاحية الكاملة لإدارة الكهنة، والسكرتارية، والشعب، وسجلات المراقبة والتدقيق، وإعلانات الكنيسة، وتعديل كافة البيانات وإعادة تعيين كلمات المرور.'
+                    : 'The Super Admin has full governance over parish priests, secretarial staff, congregation directory, system audit logs, church announcements, and data updates.'}
+                </p>
+              </div>
+
+              {/* Admin Governance Capabilities */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-gold-600" />
+                  <span>{language === 'ar' ? 'صلاحيات الحساب ومسؤوليات النظام' : 'System Privileges & Governance'}</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                  <div className="p-3 bg-stone-50 border border-stone-200 rounded-xl flex items-center gap-2.5">
+                    <Users className="w-4 h-4 text-navy-950 shrink-0" />
+                    <div>
+                      <p className="font-bold text-navy-950">{language === 'ar' ? 'سجل الشعب والمستخدمين' : 'User & Member Directory'}</p>
+                      <p className="text-[10px] text-stone-500">{language === 'ar' ? 'تعديل كافة البيانات والصلاحيات' : 'View & edit all profile fields'}</p>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-stone-50 border border-stone-200 rounded-xl flex items-center gap-2.5">
+                    <Church className="w-4 h-4 text-navy-950 shrink-0" />
+                    <div>
+                      <p className="font-bold text-navy-950">{language === 'ar' ? 'إدارة الآباء الكهنة' : 'Priest & Schedule Management'}</p>
+                      <p className="text-[10px] text-stone-500">{language === 'ar' ? 'مواعيد الاعتراف ومعدل الجلسات' : 'Configure schedules & slots'}</p>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-stone-50 border border-stone-200 rounded-xl flex items-center gap-2.5">
+                    <History className="w-4 h-4 text-navy-950 shrink-0" />
+                    <div>
+                      <p className="font-bold text-navy-950">{language === 'ar' ? 'سجل التدقيق والمراقبة' : 'Audit Logs & Security Ledger'}</p>
+                      <p className="text-[10px] text-stone-500">{language === 'ar' ? 'تتبع كافة التعديلات وعمليات الحجز' : 'Trace operations & actions'}</p>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-stone-50 border border-stone-200 rounded-xl flex items-center gap-2.5">
+                    <KeyRound className="w-4 h-4 text-navy-950 shrink-0" />
+                    <div>
+                      <p className="font-bold text-navy-950">{language === 'ar' ? 'إعادة تعيين كلمات المرور' : 'Security & Password Resets'}</p>
+                      <p className="text-[10px] text-stone-500">{language === 'ar' ? 'توليد كلمات مرور فورية لأي حساب' : 'Instant credential resets'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Identity & Contact Details Card */}
+              <div className="bg-stone-50/90 rounded-2xl p-4 sm:p-5 border border-stone-200 space-y-3 text-xs">
+                <h4 className="font-bold text-navy-950 flex items-center gap-1.5 font-serif text-sm border-b border-stone-200/80 pb-2">
+                  <UserIcon className="w-4 h-4 text-gold-600" />
+                  <span>{language === 'ar' ? 'بيانات التواصل والهوية' : 'Identity & Contact Information'}</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                  <div>
+                    <span className="text-[11px] text-stone-500 block">{t.auth.fullNameLabel}</span>
+                    <span className="font-bold text-navy-950 text-sm">
+                      {language === 'ar' ? (user.title_ar || user.name) : (user.title_en || user.name)}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[11px] text-stone-500 block">{t.auth.emailLabel}</span>
+                    <span className="font-mono font-semibold text-stone-800">{user.email}</span>
+                  </div>
+
+                  {user.phone && (
+                    <div>
+                      <span className="text-[11px] text-stone-500 block">{t.auth.phoneLabel}</span>
+                      <span className="font-semibold text-stone-800">{user.phone}</span>
+                    </div>
+                  )}
+
+                  {user.secondary_phone && (
+                    <div>
+                      <span className="text-[11px] text-stone-500 block">{t.auth.secondaryPhoneLabel}</span>
+                      <span className="font-semibold text-stone-800">{user.secondary_phone}</span>
+                    </div>
+                  )}
+
+                  {user.national_id && (
+                    <div>
+                      <span className="text-[11px] text-stone-500 block">{t.auth.nationalIdLabel}</span>
+                      <span className="font-mono font-bold text-navy-950 tracking-wider">{user.national_id}</span>
+                    </div>
+                  )}
+
+                  {user.address && (
+                    <div className="sm:col-span-2">
+                      <span className="text-[11px] text-stone-500 block">{t.auth.addressLabel}</span>
+                      <span className="font-medium text-stone-800">{user.address}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Account Metadata */}
+              <div className="p-3 bg-stone-100/80 rounded-xl border border-stone-200 text-[11px] text-stone-500 flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  {language === 'ar' ? 'تاريخ إنشاء الحساب:' : 'Account Created:'} <strong className="text-stone-700">{user.created_at ? formatDate(user.created_at) : '—'}</strong>
+                </span>
+                <span>
+                  {language === 'ar' ? 'معرف النظام:' : 'System ID:'} <strong className="font-mono text-stone-700">{user.id}</strong>
+                </span>
               </div>
 
             </div>

@@ -1358,34 +1358,43 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const formatDate = (dateStr: string | Date, options?: Intl.DateTimeFormatOptions) => {
     if (!dateStr) return '';
-    const date = typeof dateStr === 'string' ? new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00')) : dateStr;
-    if (isNaN(date.getTime())) return String(dateStr);
-    
-    return new Intl.DateTimeFormat(language === 'ar' ? 'ar-EG' : 'en-US', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      ...options,
-    }).format(date);
+    try {
+      const date = typeof dateStr === 'string' ? new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00')) : dateStr;
+      if (isNaN(date.getTime())) return String(dateStr);
+      
+      return new Intl.DateTimeFormat(language === 'ar' ? 'ar-EG' : 'en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        ...options,
+      }).format(date);
+    } catch {
+      return String(dateStr);
+    }
   };
 
   const formatTime = (timeStr: string) => {
     if (!timeStr) return '';
-    const [hours, minutes] = timeStr.split(':');
-    if (hours === undefined || minutes === undefined) return timeStr;
-    
-    const h = parseInt(hours, 10);
-    const m = parseInt(minutes, 10);
-    const periodEn = h >= 12 ? 'PM' : 'AM';
-    const periodAr = h >= 12 ? 'م' : 'ص';
-    const hour12 = h % 12 || 12;
-    const formattedMinutes = m.toString().padStart(2, '0');
+    try {
+      const [hours, minutes] = String(timeStr).split(':');
+      if (hours === undefined || minutes === undefined) return String(timeStr);
+      
+      const h = parseInt(hours, 10);
+      const m = parseInt(minutes, 10);
+      if (isNaN(h) || isNaN(m)) return String(timeStr);
+      const periodEn = h >= 12 ? 'PM' : 'AM';
+      const periodAr = h >= 12 ? 'م' : 'ص';
+      const hour12 = h % 12 || 12;
+      const formattedMinutes = m.toString().padStart(2, '0');
 
-    if (language === 'ar') {
-      return `${hour12}:${formattedMinutes} ${periodAr}`;
+      if (language === 'ar') {
+        return `${hour12}:${formattedMinutes} ${periodAr}`;
+      }
+      return `${hour12}:${formattedMinutes} ${periodEn}`;
+    } catch {
+      return String(timeStr);
     }
-    return `${hour12}:${formattedMinutes} ${periodEn}`;
   };
 
   const getDayName = (dayOfWeek: number) => {
