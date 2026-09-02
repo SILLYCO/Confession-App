@@ -49,6 +49,7 @@ export const PriestScheduleEditor: React.FC = () => {
       dayOfWeek: 0, // Sunday
       startTime: '17:00',
       endTime: '20:00',
+      avg_confession_minutes: avgMinutes,
     };
     setWeeklySchedule([...weeklySchedule, newItem]);
   };
@@ -256,6 +257,43 @@ export const PriestScheduleEditor: React.FC = () => {
                     className="w-full text-xs font-semibold p-2 rounded-xl border border-stone-300 bg-white focus:ring-2 focus:ring-gold-500"
                   />
                 </div>
+
+                {/* Session Duration for This Day / Window */}
+                <div className="w-full sm:w-44">
+                  <label className="block text-[10px] font-bold text-stone-500 mb-1 uppercase">
+                    {t.priestFlow.windowDurationLabel}
+                  </label>
+                  <select
+                    value={item.avg_confession_minutes || avgMinutes}
+                    onChange={(e) => handleUpdateItem(item.id, 'avg_confession_minutes', parseInt(e.target.value))}
+                    className="w-full text-xs font-semibold p-2 rounded-xl border border-gold-300 bg-gold-50/50 text-navy-950 focus:ring-2 focus:ring-gold-500"
+                  >
+                    {[10, 15, 20, 30, 45, 60].map((mins) => (
+                      <option key={mins} value={mins}>
+                        {mins} {t.common.minutes} {mins === avgMinutes ? `(${t.priestFlow.useDefaultDuration})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Estimated Slot Count Badge */}
+                {(() => {
+                  const [sh, sm] = (item.startTime || '00:00').split(':').map(Number);
+                  const [eh, em] = (item.endTime || '00:00').split(':').map(Number);
+                  const totalM = Math.max(0, (eh * 60 + em) - (sh * 60 + sm));
+                  const effectiveDuration = item.avg_confession_minutes || avgMinutes;
+                  const estimatedSlots = effectiveDuration > 0 ? Math.floor(totalM / effectiveDuration) : 0;
+                  return (
+                    <div className="pt-2 sm:pt-4">
+                      <span 
+                        className="inline-flex items-center px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-stone-100 text-stone-700 border border-stone-200 whitespace-nowrap"
+                        title={language === 'ar' ? `سيتم توليد ${estimatedSlots} موعداً لهذه الفترة` : `${estimatedSlots} slots generated for this window`}
+                      >
+                        ⚡ {estimatedSlots} {t.priestFlow.windowSlotsCount}
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {/* Delete Button */}
                 <div className="sm:ms-auto pt-2 sm:pt-4">

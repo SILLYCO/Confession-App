@@ -94,10 +94,11 @@ export const CreatePriestWizardModal: React.FC<CreatePriestWizardModalProps> = (
 
   const handleAddScheduleWindow = () => {
     const newItem: WeeklyScheduleItem = {
-      id: 'w_' + Math.random().toString(36).substring(2, 6),
+      id: 'w_' + Math.random().toString(36).substring(2, 7),
       dayOfWeek: 0,
       startTime: '17:00',
       endTime: '20:00',
+      avg_confession_minutes: avgDuration,
     };
     setWeeklySchedule([...weeklySchedule, newItem]);
   };
@@ -514,7 +515,7 @@ export const CreatePriestWizardModal: React.FC<CreatePriestWizardModalProps> = (
                         </select>
                       </div>
 
-                      <div className="flex items-center gap-2 text-xs">
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
                         <div className="flex items-center gap-1">
                           <span className="text-stone-400 text-[10px]">من</span>
                           <input
@@ -534,6 +535,18 @@ export const CreatePriestWizardModal: React.FC<CreatePriestWizardModalProps> = (
                             className="text-xs rounded-xl border border-stone-300 p-1.5 bg-white font-mono"
                           />
                         </div>
+
+                        <select
+                          value={window.avg_confession_minutes || avgDuration}
+                          onChange={(e) => handleUpdateScheduleWindow(window.id, 'avg_confession_minutes', parseInt(e.target.value))}
+                          className="text-xs rounded-xl border border-gold-300 bg-gold-50/50 p-1.5 font-bold text-navy-950 focus:ring-2 focus:ring-gold-500"
+                        >
+                          {[10, 15, 20, 30, 45, 60].map((mins) => (
+                            <option key={mins} value={mins}>
+                              {mins} {t.common.minutes}
+                            </option>
+                          ))}
+                        </select>
 
                         <button
                           type="button"

@@ -29,6 +29,7 @@ export const PriestOverridesEditor: React.FC = () => {
   const [isUnavailable, setIsUnavailable] = useState(true);
   const [startTime, setStartTime] = useState('10:00');
   const [endTime, setEndTime] = useState('14:00');
+  const [overrideDuration, setOverrideDuration] = useState<number>(profile?.avg_confession_minutes || 15);
   const [reason, setReason] = useState('Monastery Retreat / Travel');
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -45,6 +46,7 @@ export const PriestOverridesEditor: React.FC = () => {
       isUnavailable,
       startTime: isUnavailable ? undefined : startTime,
       endTime: isUnavailable ? undefined : endTime,
+      avg_confession_minutes: isUnavailable ? undefined : overrideDuration,
       reason: reason.trim() || undefined,
     };
 
@@ -176,9 +178,9 @@ export const PriestOverridesEditor: React.FC = () => {
             </p>
           </div>
 
-          {/* Custom Time Windows if NOT complete blackout */}
+          {/* Custom Time Windows & Duration if NOT complete blackout */}
           {!isUnavailable && (
-            <div className="grid grid-cols-2 gap-4 p-4 rounded-2xl bg-white border border-stone-200">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-2xl bg-white border border-stone-200">
               <div>
                 <label className="block text-xs font-bold text-stone-700 mb-1">
                   {language === 'ar' ? 'وقت البدء المخصص' : 'Custom Start Time'}
@@ -200,6 +202,22 @@ export const PriestOverridesEditor: React.FC = () => {
                   onChange={(e) => setEndTime(e.target.value)}
                   className="w-full text-xs p-2 rounded-xl border border-stone-300"
                 />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  {t.priestFlow.windowDurationLabel}
+                </label>
+                <select
+                  value={overrideDuration}
+                  onChange={(e) => setOverrideDuration(parseInt(e.target.value))}
+                  className="w-full text-xs p-2 rounded-xl border border-gold-300 bg-gold-50/50 text-navy-950 font-semibold focus:ring-2 focus:ring-gold-500"
+                >
+                  {[10, 15, 20, 30, 45, 60].map((mins) => (
+                    <option key={mins} value={mins}>
+                      {mins} {t.common.minutes}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           )}

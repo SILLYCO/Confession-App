@@ -71,10 +71,11 @@ export function generateSlotsForPriest(
 
       // Custom window for this override date
       if (override.startTime && override.endTime) {
+        const overrideDuration = override.avg_confession_minutes || avgConfessionMinutes;
         const generatedWindows = splitTimeWindowIntoSlots(
           override.startTime,
           override.endTime,
-          avgConfessionMinutes
+          overrideDuration
         );
 
         for (const win of generatedWindows) {
@@ -108,10 +109,11 @@ export function generateSlotsForPriest(
       const daySchedules = weeklySchedule.filter((s) => s.dayOfWeek === dayOfWeek);
 
       for (const sched of daySchedules) {
+        const windowDuration = sched.avg_confession_minutes || avgConfessionMinutes;
         const generatedWindows = splitTimeWindowIntoSlots(
           sched.startTime,
           sched.endTime,
-          avgConfessionMinutes
+          windowDuration
         );
 
         for (const win of generatedWindows) {

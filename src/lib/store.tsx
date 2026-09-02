@@ -945,7 +945,15 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const startM = timePart.substring(2, 4);
       const startTime = `${startH}:${startM}`;
       
-      const duration = profile?.avg_confession_minutes || 15;
+      const bookingDateObj = new Date(date + 'T00:00:00');
+      const dayOfWeek = isNaN(bookingDateObj.getTime()) ? 0 : bookingDateObj.getDay();
+      const override = profile?.schedule_overrides?.find(o => o.date === date);
+      const matchingSchedule = profile?.weekly_schedule?.find(w => 
+        w.dayOfWeek === dayOfWeek && 
+        w.startTime <= startTime && 
+        w.endTime > startTime
+      );
+      const duration = override?.avg_confession_minutes || matchingSchedule?.avg_confession_minutes || profile?.avg_confession_minutes || 15;
       const endTotalM = parseInt(startH) * 60 + parseInt(startM) + duration;
       const endTime = `${Math.floor(endTotalM / 60).toString().padStart(2, '0')}:${(endTotalM % 60).toString().padStart(2, '0')}`;
 
@@ -1251,7 +1259,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     newWeeklySchedule: WeeklyScheduleItem[]
   ) => {
     const profile = priestProfiles.find(p => p.priest_id === priestId);
-    const durationChanged = (profile?.avg_confession_minutes || 15) !== newAvgMinutes;
+    const globalDurationChanged = (profile?.avg_confession_minutes || 15) !== newAvgMinutes;
 
     const futureConfirmedBookings = bookings.filter(b => 
       b.priest_id === priestId && 
@@ -1262,26 +1270,31 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const preservedBookings: Booking[] = [];
     const cancelledBookings: Booking[] = [];
 
-    if (durationChanged) {
-      // If duration changed, all slot boundaries shift across all days -> cancel all
-      cancelledBookings.push(...futureConfirmedBookings);
-    } else {
-      // If duration is unchanged, check if booking's day and time window still exist in new schedule
-      for (const booking of futureConfirmedBookings) {
-        const bookingDay = new Date(booking.date + 'T00:00:00').getDay();
-        
-        // Find if there is a window in new schedule on this day that covers this booking
-        const matchingWindow = newWeeklySchedule.find(w => 
-          w.dayOfWeek === bookingDay && 
-          w.startTime <= booking.start_time && 
-          w.endTime >= booking.end_time
-        );
+    // Evaluate each booking individually against old vs new window configuration
+    for (const booking of futureConfirmedBookings) {
+      const bookingDateObj = new Date(booking.date + 'T00:00:00');
+      const bookingDay = isNaN(bookingDateObj.getTime()) ? 0 : bookingDateObj.getDay();
+      
+      // Old duration for this booking
+      const oldMatchingWindow = profile?.weekly_schedule?.find(w => 
+        w.dayOfWeek === bookingDay && 
+        w.startTime <= booking.start_time && 
+        w.endTime >= booking.end_time
+      );
+      const oldEffectiveDuration = oldMatchingWindow?.avg_confession_minutes || profile?.avg_confession_minutes || 15;
 
-        if (matchingWindow) {
-          preservedBookings.push(booking);
-        } else {
-          cancelledBookings.push(booking);
-        }
+      // Find if there is a window in new schedule on this day that covers this booking with exact same duration
+      const newMatchingWindow = newWeeklySchedule.find(w => 
+        w.dayOfWeek === bookingDay && 
+        w.startTime <= booking.start_time && 
+        w.endTime >= booking.end_time
+      );
+      const newEffectiveDuration = newMatchingWindow?.avg_confession_minutes || newAvgMinutes;
+
+      if (newMatchingWindow && newEffectiveDuration === oldEffectiveDuration) {
+        preservedBookings.push(booking);
+      } else {
+        cancelledBookings.push(booking);
       }
     }
 
@@ -1296,14 +1309,15 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const [sh, sm] = win.startTime.split(':').map(Number);
         const [eh, em] = win.endTime.split(':').map(Number);
         const totalMinutes = (eh * 60 + em) - (sh * 60 + sm);
-        if (totalMinutes > 0) {
-          totalSlotsEstimate += Math.floor(totalMinutes / newAvgMinutes);
+        const winDuration = win.avg_confession_minutes || newAvgMinutes;
+        if (totalMinutes > 0 && winDuration > 0) {
+          totalSlotsEstimate += Math.floor(totalMinutes / winDuration);
         }
       }
     }
 
     return {
-      durationChanged,
+      durationChanged: globalDurationChanged,
       preservedBookings,
       cancelledBookings,
       newSlotsEstimate: totalSlotsEstimate,
