@@ -157,6 +157,26 @@ const LOCAL_STORAGE_KEY_BOOKINGS = 'confession_system_bookings_v3';
 const LOCAL_STORAGE_KEY_NOTIFS = 'confession_system_notifs_v3';
 const LOCAL_STORAGE_KEY_CURRENT_USER = 'confession_system_current_user_v3';
 const LOCAL_STORAGE_KEY_ANNOUNCEMENTS = 'confession_system_announcements_v3';
+const LOCAL_STORAGE_KEY_DELETED_USERS = 'confession_system_deleted_users_v3';
+
+const getDeletedUserIds = (): string[] => {
+  try {
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY_DELETED_USERS);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+};
+
+const addDeletedUserId = (id: string) => {
+  try {
+    const existing = getDeletedUserIds();
+    if (!existing.includes(id)) {
+      const updated = [...existing, id];
+      localStorage.setItem(LOCAL_STORAGE_KEY_DELETED_USERS, JSON.stringify(updated));
+    }
+  } catch {}
+};
 
 const INITIAL_MOCK_ANNOUNCEMENTS: ParishAnnouncement[] = [
   {
@@ -186,46 +206,37 @@ const INITIAL_MOCK_ANNOUNCEMENTS: ParishAnnouncement[] = [
 export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Initialize state from local storage or mock data
   const [allUsers, setAllUsers] = useState<User[]>(() => {
+    const deletedIds = getDeletedUserIds();
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_USERS);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Refresh priest title, remove dummy priests, and merge default profile fields for mock accounts
-          const cleaned = parsed.map((u: User) => {
-            const defaultMock = MOCK_USERS.find(m => m.id === u.id || m.email === u.email);
-            if (!defaultMock) return u;
-            const merged: User = { ...defaultMock };
-            for (const key of Object.keys(u) as (keyof User)[]) {
-              const val = u[key];
-              if (val !== undefined && val !== null && val !== '') {
-                (merged as any)[key] = val;
+        if (Array.isArray(parsed)) {
+          // Filter out explicitly deleted users and sanitize
+          const cleaned = parsed
+            .filter((u: User) => !deletedIds.includes(u.id) && !deletedIds.includes(u.email))
+            .map((u: User) => {
+              const defaultMock = MOCK_USERS.find(m => m.id === u.id || m.email === u.email);
+              if (!defaultMock) return u;
+              const merged: User = { ...defaultMock };
+              for (const key of Object.keys(u) as (keyof User)[]) {
+                const val = u[key];
+                if (val !== undefined && val !== null && val !== '') {
+                  (merged as any)[key] = val;
+                }
               }
-            }
-            if (merged.id === '11111111-1111-1111-1111-111111111111' || merged.name === 'Fr. Bishoy Ahdy') {
-              merged.title_ar = 'القس بيشوي عهدي';
-              merged.title_en = 'Fr. Bishoy Ahdy';
-            }
-            return merged;
-          }).filter((u: User) => 
-            u.name !== 'Fr. Athanasius Hanna' && 
-            u.name !== 'Fr. Menas Shenouda' && 
-            u.title_ar !== 'القمص أثناسيوس حنا' &&
-            u.title_ar !== 'الراهب القس مينا شنودة'
-          );
-
-          // If any standard mock users are missing from saved array, append them
-          for (const mockUser of MOCK_USERS) {
-            if (!cleaned.some(u => u.id === mockUser.id || u.email === mockUser.email)) {
-              cleaned.push(mockUser);
-            }
-          }
+              if (merged.id === '11111111-1111-1111-1111-111111111111' || merged.name === 'Fr. Bishoy Ahdy') {
+                merged.title_ar = 'القس بيشوي عهدي';
+                merged.title_en = 'Fr. Bishoy Ahdy';
+              }
+              return merged;
+            });
 
           return cleaned;
         }
       } catch {}
     }
-    return MOCK_USERS;
+    return MOCK_USERS.filter(u => !deletedIds.includes(u.id) && !deletedIds.includes(u.email));
   });
 
   const [currentUser, setCurrentUserState] = useState<User | null>(() => {
@@ -372,13 +383,17 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       ]);
 
       if (usersData && usersData.length > 0) {
+        const deletedIds = getDeletedUserIds();
         setAllUsers(prev => {
           const updatedMap = new Map<string, User>();
           for (const u of usersData) {
-            updatedMap.set(u.id, u);
+            if (!deletedIds.includes(u.id) && !deletedIds.includes(u.email)) {
+              updatedMap.set(u.id, u);
+            }
           }
           // Preserve local updates if local updated_at is newer or equals
           for (const localU of prev) {
+            if (deletedIds.includes(localU.id) || deletedIds.includes(localU.email)) continue;
             const remoteU = updatedMap.get(localU.id);
             if (!remoteU) {
               updatedMap.set(localU.id, localU);
@@ -387,15 +402,11 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             }
           }
 
-          const hasPriests = Array.from(updatedMap.values()).some(u => u.role === 'priest');
-          if (!hasPriests) {
-            const mockPriests = MOCK_USERS.filter(u => u.role === 'priest');
-            mockPriests.forEach(p => {
-              if (!updatedMap.has(p.id)) updatedMap.set(p.id, p);
-            });
-          }
-
-          return Array.from(updatedMap.values());
+          const result = Array.from(updatedMap.values()).filter(u => !deletedIds.includes(u.id) && !deletedIds.includes(u.email));
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEY_USERS, JSON.stringify(result));
+          } catch {}
+          return result;
         });
       }
       if (profilesData) {
@@ -1878,21 +1889,57 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return { success: false, error: 'Cannot delete the active logged in admin account' };
       }
 
-      if (supabase && isSupabaseConfigured) {
-        await supabase.from('users').delete().eq('id', userId);
-        await supabase.from('priest_profiles').delete().eq('priest_id', userId);
+      // 1. Mark as permanently deleted in tombstones
+      addDeletedUserId(userId);
+
+      // Also mark user's email as deleted if found
+      const targetUser = allUsers.find(u => u.id === userId);
+      if (targetUser?.email) {
+        addDeletedUserId(targetUser.email.toLowerCase());
       }
 
-      setAllUsers(prev => prev.filter(u => u.id !== userId));
-      setPriestProfiles(prev => prev.filter(p => p.priest_id !== userId));
-      setBookings(prev => prev.filter(b => b.user_id !== userId && b.priest_id !== userId));
+      // 2. Synchronously update local React states and localStorage
+      setAllUsers(prev => {
+        const updated = prev.filter(u => u.id !== userId);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY_USERS, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+
+      setPriestProfiles(prev => {
+        const updated = prev.filter(p => p.priest_id !== userId);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY_PROFILES, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+
+      setBookings(prev => {
+        const updated = prev.filter(b => b.user_id !== userId && b.priest_id !== userId);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY_BOOKINGS, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
+
+      // 3. Delete from Supabase if configured
+      if (supabase && isSupabaseConfigured) {
+        try {
+          await supabase.from('users').delete().eq('id', userId);
+          await supabase.from('priest_profiles').delete().eq('priest_id', userId);
+          await supabase.from('bookings').delete().or(`user_id.eq.${userId},priest_id.eq.${userId}`);
+        } catch (e) {
+          console.warn('Supabase delete user error:', e);
+        }
+      }
 
       return { success: true };
 
     } catch (err: any) {
       return { success: false, error: err.message || 'Failed to delete user' };
     }
-  }, [currentUser]);
+  }, [currentUser, allUsers]);
 
   // Parish Broadcasts Actions
   const createAnnouncement = useCallback(async (data: Omit<ParishAnnouncement, 'id' | 'created_at'>) => {
