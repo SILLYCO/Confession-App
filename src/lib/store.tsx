@@ -7,7 +7,15 @@ import {
   NotificationLog, 
   WeeklyScheduleItem, 
   ScheduleOverride,
-  DEFAULT_SKELETON_AVATAR 
+  DEFAULT_SKELETON_AVATAR,
+  ParishAnnouncement,
+  AnnouncementPriority,
+  AnnouncementAudience,
+  MaritalStatus,
+  ChurchServiceRole,
+  Gender,
+  ConfessionRhythmInfo,
+  ConfessionRhythmStatus
 } from '../types/database';
 import { 
   MOCK_USERS, 
@@ -20,6 +28,7 @@ import {
   isWithinTwoHourCutoff, 
   isSlotInPast 
 } from './slotGenerator';
+import { format, addDays } from 'date-fns';
 import { supabase, isSupabaseConfigured } from './supabase';
 import confetti from 'canvas-confetti';
 
@@ -35,9 +44,22 @@ interface AppStoreContextType {
     name: string; 
     email: string; 
     password?: string; 
-    phone?: string; 
+    phone: string;
+    secondary_phone?: string;
+    gender?: Gender;
+    date_of_birth: string;
+    national_id: string;
+    marital_status: MaritalStatus;
+    profession?: string;
+    education?: string;
+    address: string;
+    service_status: ChurchServiceRole;
+    served_stage?: string;
+    serving_stage?: string;
+    other_services?: string;
+    confession_father_id: string;
     title_ar?: string; 
-    title_en?: string 
+    title_en?: string;
   }) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -73,6 +95,7 @@ interface AppStoreContextType {
     newStatus: 'completed' | 'no_show', 
     attendanceNotes?: string
   ) => Promise<{ success: boolean; error?: string }>;
+  updatePriestPrivateNotes: (bookingId: string, privateNotes: string) => Promise<{ success: boolean; error?: string }>;
   // Smart Schedule Diff & Actions
   previewScheduleChangeImpact: (
     priestId: string, 
@@ -110,6 +133,17 @@ interface AppStoreContextType {
   deleteUser: (userId: string) => Promise<{ success: boolean; error?: string }>;
   adminResetPassword: (userId: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
 
+  // Parish Broadcasts & Announcements
+  announcements: ParishAnnouncement[];
+  createAnnouncement: (data: Omit<ParishAnnouncement, 'id' | 'created_at'>) => Promise<{ success: boolean; announcement?: ParishAnnouncement; error?: string }>;
+  updateAnnouncement: (id: string, updates: Partial<ParishAnnouncement>) => Promise<{ success: boolean; error?: string }>;
+  deleteAnnouncement: (id: string) => Promise<{ success: boolean; error?: string }>;
+  toggleAnnouncementActive: (id: string) => Promise<{ success: boolean; error?: string }>;
+  getActiveAnnouncementsForUser: (userRole?: string) => ParishAnnouncement[];
+
+  // Confession Rhythm
+  getConfessionRhythm: (userId: string) => ConfessionRhythmInfo;
+
   markNotificationAsRead: (notificationId: string) => void;
   markAllNotificationsAsRead: () => void;
   refreshData: () => void;
@@ -122,18 +156,86 @@ const LOCAL_STORAGE_KEY_PROFILES = 'confession_system_profiles_v3';
 const LOCAL_STORAGE_KEY_BOOKINGS = 'confession_system_bookings_v3';
 const LOCAL_STORAGE_KEY_NOTIFS = 'confession_system_notifs_v3';
 const LOCAL_STORAGE_KEY_CURRENT_USER = 'confession_system_current_user_v3';
+const LOCAL_STORAGE_KEY_ANNOUNCEMENTS = 'confession_system_announcements_v3';
+
+const INITIAL_MOCK_ANNOUNCEMENTS: ParishAnnouncement[] = [
+  {
+    id: 'ann_1',
+    title_ar: 'مواعيد سر الاعتراف خلال فترة الصوم المقدس والأعياد',
+    title_en: 'Sacrament of Holy Confession Schedule During Holy Feasts & Fasts',
+    content_ar: 'تعلن الكنيسة لشعبها المبارك بضرورة الالتزام بحجز مواعيد الاعتراف مسبقاً عبر المنظومة. نرجو الحضور قبل الموعد بـ 10 دقائق حرصاً على راحة الجميع.',
+    content_en: 'The Church invites all congregation members to reserve their confession appointments in advance through the online portal. Please arrive 10 minutes before your slot.',
+    priority: 'important',
+    target_audience: 'all',
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'ann_2',
+    title_ar: 'تنبيه خاص بمواعيد القداسات والخدمة الأسبوعية',
+    title_en: 'Notice Regarding Weekly Liturgy & Pastoral Services',
+    content_ar: 'القداس الإلهي يبدأ أيام الأحد والأربعاء والجمعة. مواعيد اعترافات الآباء الكهنة متاحة بالجدول الأسبوعي بعد القداس مباشرة.',
+    content_en: 'Holy Liturgy is served Sundays, Wednesdays, and Fridays. Confession appointments with Church Fathers follow immediately as scheduled.',
+    priority: 'normal',
+    target_audience: 'all',
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
+];
 
 export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Initialize state from local storage or mock data
   const [allUsers, setAllUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_USERS);
-    return saved ? JSON.parse(saved) : MOCK_USERS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Refresh priest title, remove dummy priests, and merge default profile fields for mock accounts
+          const cleaned = parsed.map((u: User) => {
+            const defaultMock = MOCK_USERS.find(m => m.id === u.id || m.email === u.email);
+            if (!defaultMock) return u;
+            const merged: User = { ...defaultMock };
+            for (const key of Object.keys(u) as (keyof User)[]) {
+              const val = u[key];
+              if (val !== undefined && val !== null && val !== '') {
+                (merged as any)[key] = val;
+              }
+            }
+            if (merged.id === '11111111-1111-1111-1111-111111111111' || merged.name === 'Fr. Bishoy Ahdy') {
+              merged.title_ar = 'القس بيشوي عهدي';
+              merged.title_en = 'Fr. Bishoy Ahdy';
+            }
+            return merged;
+          }).filter((u: User) => 
+            u.name !== 'Fr. Athanasius Hanna' && 
+            u.name !== 'Fr. Menas Shenouda' && 
+            u.title_ar !== 'القمص أثناسيوس حنا' &&
+            u.title_ar !== 'الراهب القس مينا شنودة'
+          );
+
+          // If any standard mock users are missing from saved array, append them
+          for (const mockUser of MOCK_USERS) {
+            if (!cleaned.some(u => u.id === mockUser.id || u.email === mockUser.email)) {
+              cleaned.push(mockUser);
+            }
+          }
+
+          return cleaned;
+        }
+      } catch {}
+    }
+    return MOCK_USERS;
   });
 
   const [currentUser, setCurrentUserState] = useState<User | null>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_CURRENT_USER);
     if (saved) {
-      try { return JSON.parse(saved); } catch {}
+      try { 
+        const parsed = JSON.parse(saved);
+        const defaultMock = MOCK_USERS.find(m => m.id === parsed.id || m.email === parsed.email);
+        return defaultMock ? { ...defaultMock, ...parsed } : parsed;
+      } catch {}
     }
     return null;
   });
@@ -143,12 +245,37 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const [priestProfiles, setPriestProfiles] = useState<PriestProfile[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_PROFILES);
-    return saved ? JSON.parse(saved) : MOCK_PRIEST_PROFILES;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const cleaned = parsed.filter((p: PriestProfile) => 
+            p.priest_id !== '22222222-2222-2222-2222-222222222222'
+          );
+          if (cleaned.length === 0) return MOCK_PRIEST_PROFILES;
+          return cleaned;
+        }
+      } catch {}
+    }
+    return MOCK_PRIEST_PROFILES;
   });
 
   const [bookings, setBookings] = useState<Booking[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BOOKINGS);
-    return saved ? JSON.parse(saved) : INITIAL_MOCK_BOOKINGS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasCompleted = parsed.some((b: Booking) => b.status === 'completed');
+          if (!hasCompleted) {
+            const missing = INITIAL_MOCK_BOOKINGS.filter((m: Booking) => !parsed.some((b: Booking) => b.id === m.id));
+            return [...parsed, ...missing];
+          }
+          return parsed;
+        }
+      } catch {}
+    }
+    return INITIAL_MOCK_BOOKINGS;
   });
 
   const [notificationLogs, setNotificationLogs] = useState<NotificationLog[]>(() => {
@@ -156,10 +283,19 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return saved ? JSON.parse(saved) : INITIAL_MOCK_NOTIFICATIONS;
   });
 
+  const [announcements, setAnnouncements] = useState<ParishAnnouncement[]>(() => {
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY_ANNOUNCEMENTS);
+    return saved ? JSON.parse(saved) : INITIAL_MOCK_ANNOUNCEMENTS;
+  });
+
   // Sync to localStorage
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY_USERS, JSON.stringify(allUsers));
   }, [allUsers]);
+
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEY_ANNOUNCEMENTS, JSON.stringify(announcements));
+  }, [announcements]);
 
   useEffect(() => {
     if (currentUser) {
@@ -235,8 +371,14 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         client.from('notification_logs').select('*').order('sent_at', { ascending: false }),
       ]);
 
-      if (usersData) {
-        setAllUsers(usersData);
+      if (usersData && usersData.length > 0) {
+        const hasPriests = usersData.some(u => u.role === 'priest');
+        if (!hasPriests) {
+          const mockPriests = MOCK_USERS.filter(u => u.role === 'priest');
+          setAllUsers([...usersData, ...mockPriests]);
+        } else {
+          setAllUsers(usersData);
+        }
       }
       if (profilesData) {
         setPriestProfiles(profilesData);
@@ -340,7 +482,20 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     name: string;
     email: string;
     password?: string;
-    phone?: string;
+    phone: string;
+    secondary_phone?: string;
+    gender?: Gender;
+    date_of_birth: string;
+    national_id: string;
+    marital_status: MaritalStatus;
+    profession?: string;
+    education?: string;
+    address: string;
+    service_status: ChurchServiceRole;
+    served_stage?: string;
+    serving_stage?: string;
+    other_services?: string;
+    confession_father_id: string;
     title_ar?: string;
     title_en?: string;
   }): Promise<{ success: boolean; error?: string }> => {
@@ -351,7 +506,20 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         options: {
           data: {
             name: params.name.trim(),
-            phone: params.phone?.trim(),
+            phone: params.phone.trim(),
+            secondary_phone: params.secondary_phone?.trim(),
+            gender: params.gender,
+            date_of_birth: params.date_of_birth,
+            national_id: params.national_id.trim(),
+            marital_status: params.marital_status,
+            profession: params.profession?.trim(),
+            education: params.education?.trim(),
+            address: params.address.trim(),
+            service_status: params.service_status,
+            served_stage: params.service_status === 'served' ? params.served_stage?.trim() : undefined,
+            serving_stage: params.service_status === 'servant' ? params.serving_stage?.trim() : undefined,
+            other_services: params.other_services?.trim(),
+            confession_father_id: params.confession_father_id,
             role: 'general',
             title_ar: params.title_ar || params.name.trim(),
             title_en: params.title_en || params.name.trim(),
@@ -368,11 +536,24 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           id: data.user.id,
           name: params.name.trim(),
           email: params.email.trim(),
-          phone: params.phone?.trim(),
+          phone: params.phone.trim(),
+          secondary_phone: params.secondary_phone?.trim(),
+          gender: params.gender,
+          date_of_birth: params.date_of_birth,
+          national_id: params.national_id.trim(),
+          marital_status: params.marital_status,
+          profession: params.profession?.trim(),
+          education: params.education?.trim(),
+          address: params.address.trim(),
+          service_status: params.service_status,
+          served_stage: params.service_status === 'served' ? params.served_stage?.trim() : undefined,
+          serving_stage: params.service_status === 'servant' ? params.serving_stage?.trim() : undefined,
+          other_services: params.other_services?.trim(),
+          confession_father_id: params.confession_father_id,
           role: 'general',
           title_ar: params.title_ar || params.name.trim(),
           title_en: params.title_en || params.name.trim(),
-          avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100',
+          avatar_url: DEFAULT_SKELETON_AVATAR,
           created_at: new Date().toISOString(),
         };
 
@@ -393,11 +574,24 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       id: 'usr_' + Math.random().toString(36).substring(2, 9),
       name: params.name.trim(),
       email: params.email.trim(),
-      phone: params.phone?.trim(),
+      phone: params.phone.trim(),
+      secondary_phone: params.secondary_phone?.trim(),
+      gender: params.gender,
+      date_of_birth: params.date_of_birth,
+      national_id: params.national_id.trim(),
+      marital_status: params.marital_status,
+      profession: params.profession?.trim(),
+      education: params.education?.trim(),
+      address: params.address.trim(),
+      service_status: params.service_status,
+      served_stage: params.service_status === 'served' ? params.served_stage?.trim() : undefined,
+      serving_stage: params.service_status === 'servant' ? params.serving_stage?.trim() : undefined,
+      other_services: params.other_services?.trim(),
+      confession_father_id: params.confession_father_id,
       role: 'general',
       title_ar: params.title_ar || params.name.trim(),
       title_en: params.title_en || params.name.trim(),
-      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100',
+      avatar_url: DEFAULT_SKELETON_AVATAR,
       created_at: new Date().toISOString(),
     };
 
@@ -423,7 +617,11 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const isLoggedIn = Boolean(currentUser);
 
-  const priests = useMemo(() => allUsers.filter(u => u.role === 'priest'), [allUsers]);
+  const priests = useMemo(() => {
+    const list = allUsers.filter(u => u.role === 'priest');
+    if (list.length > 0) return list;
+    return MOCK_USERS.filter(u => u.role === 'priest');
+  }, [allUsers]);
   const secretaries = useMemo(() => allUsers.filter(u => u.role === 'secretary'), [allUsers]);
   const generalUsers = useMemo(() => allUsers.filter(u => u.role === 'general'), [allUsers]);
 
@@ -471,11 +669,15 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Enriched bookings with joined user and priest details
   const enrichedBookings = useMemo(() => {
-    return bookings.map(b => ({
-      ...b,
-      user: b.user || allUsers.find(u => u.id === b.user_id),
-      priest: b.priest || allUsers.find(u => u.id === b.priest_id),
-    }));
+    return bookings.map(b => {
+      const liveUser = allUsers.find(u => u.id === b.user_id || (b.user && u.email === b.user.email));
+      const livePriest = allUsers.find(u => u.id === b.priest_id || (b.priest && u.email === b.priest.email));
+      return {
+        ...b,
+        user: liveUser || b.user,
+        priest: livePriest || b.priest,
+      };
+    });
   }, [bookings, allUsers]);
 
   // Get active upcoming booking for user
@@ -493,6 +695,85 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!targetId) return [];
     return enrichedBookings.filter(b => b.user_id === targetId);
   }, [enrichedBookings, currentUser]);
+
+  const getConfessionRhythm = useCallback((userId?: string): ConfessionRhythmInfo => {
+    const targetId = userId || currentUser?.id;
+    if (!targetId) {
+      return {
+        daysSinceLast: null,
+        intervalDays: 30,
+        daysRemaining: null,
+        targetDate: null,
+        percentageElapsed: 0,
+        status: 'no_history',
+        hasUpcomingBooking: false,
+        lastConfessionDate: null,
+      };
+    }
+
+    const user = allUsers.find(u => u.id === targetId) || currentUser;
+    const intervalDays = user?.confession_reminder_interval_days || 30;
+    const userBookingsList = enrichedBookings.filter(b => b.user_id === targetId);
+
+    // Completed confessions sorted descending
+    const completedList = userBookingsList
+      .filter(b => b.status === 'completed')
+      .sort((a, b) => new Date(b.date + 'T' + b.start_time).getTime() - new Date(a.date + 'T' + a.start_time).getTime());
+
+    const lastConfession = completedList[0];
+    const lastConfessionDate = lastConfession ? lastConfession.date : null;
+
+    // Check active upcoming booking
+    const activeUpcoming = userBookingsList.find(b => {
+      if (b.status !== 'confirmed') return false;
+      return !isSlotInPast(b.date, b.start_time);
+    });
+    const hasUpcomingBooking = Boolean(activeUpcoming);
+
+    if (!lastConfessionDate) {
+      return {
+        daysSinceLast: null,
+        intervalDays,
+        daysRemaining: null,
+        targetDate: null,
+        percentageElapsed: 0,
+        status: 'no_history',
+        hasUpcomingBooking,
+        lastConfessionDate: null,
+      };
+    }
+
+    const lastDate = new Date(lastConfessionDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    lastDate.setHours(0, 0, 0, 0);
+
+    const diffTime = today.getTime() - lastDate.getTime();
+    const daysSinceLast = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+
+    const daysRemaining = intervalDays - daysSinceLast;
+    const targetDateObj = addDays(lastDate, intervalDays);
+    const targetDate = format(targetDateObj, 'yyyy-MM-dd');
+    const percentageElapsed = Math.min(Math.round((daysSinceLast / intervalDays) * 100), 200);
+
+    let status: ConfessionRhythmStatus = 'on_track';
+    if (daysSinceLast > intervalDays) {
+      status = 'overdue';
+    } else if (daysRemaining <= 7) {
+      status = 'due_soon';
+    }
+
+    return {
+      daysSinceLast,
+      intervalDays,
+      daysRemaining,
+      targetDate,
+      percentageElapsed,
+      status,
+      hasUpcomingBooking,
+      lastConfessionDate,
+    };
+  }, [allUsers, currentUser, enrichedBookings]);
 
   const getPriestBookings = useCallback((priestId?: string) => {
     const targetId = priestId || currentUser?.id;
@@ -853,6 +1134,49 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     } catch (err: any) {
       return { success: false, error: err.message || 'Failed to update attendance' };
+    }
+  }, [bookings]);
+
+  // ----------------------------------------------------------------------------
+  // Priest Confidential Private Notes
+  // ----------------------------------------------------------------------------
+  const updatePriestPrivateNotes = useCallback(async (
+    bookingId: string, 
+    privateNotes: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const targetBooking = bookings.find(b => b.id === bookingId);
+      if (!targetBooking) {
+        return { success: false, error: 'Booking not found' };
+      }
+
+      if (supabase && isSupabaseConfigured) {
+        const { error: noteErr } = await supabase
+          .from('bookings')
+          .update({
+            priest_private_notes: privateNotes
+          })
+          .eq('id', bookingId);
+
+        if (noteErr) {
+          console.error('Supabase update priest private notes error:', noteErr);
+        }
+      }
+
+      const updatedBookings = bookings.map(b => {
+        if (b.id === bookingId) {
+          return {
+            ...b,
+            priest_private_notes: privateNotes,
+          };
+        }
+        return b;
+      });
+
+      setBookings(updatedBookings);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to update priest private notes' };
     }
   }, [bookings]);
 
@@ -1461,6 +1785,103 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [currentUser]);
 
+  // Parish Broadcasts Actions
+  const createAnnouncement = useCallback(async (data: Omit<ParishAnnouncement, 'id' | 'created_at'>) => {
+    try {
+      const newAnn: ParishAnnouncement = {
+        ...data,
+        id: 'ann_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+        created_by: currentUser?.id,
+        created_at: new Date().toISOString(),
+      };
+
+      setAnnouncements(prev => [newAnn, ...prev]);
+
+      if (supabase && isSupabaseConfigured) {
+        supabase
+          .from('parish_announcements')
+          .insert([newAnn])
+          .then(() => {}, () => {});
+      }
+
+      return { success: true, announcement: newAnn };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to create announcement' };
+    }
+  }, [currentUser]);
+
+  const updateAnnouncement = useCallback(async (id: string, updates: Partial<ParishAnnouncement>) => {
+    try {
+      setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+
+      if (supabase && isSupabaseConfigured) {
+        supabase
+          .from('parish_announcements')
+          .update(updates)
+          .eq('id', id)
+          .then(() => {}, () => {});
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to update announcement' };
+    }
+  }, []);
+
+  const deleteAnnouncement = useCallback(async (id: string) => {
+    try {
+      setAnnouncements(prev => prev.filter(a => a.id !== id));
+
+      if (supabase && isSupabaseConfigured) {
+        supabase
+          .from('parish_announcements')
+          .delete()
+          .eq('id', id)
+          .then(() => {}, () => {});
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to delete announcement' };
+    }
+  }, []);
+
+  const toggleAnnouncementActive = useCallback(async (id: string) => {
+    try {
+      let nextState = false;
+      setAnnouncements(prev => prev.map(a => {
+        if (a.id === id) {
+          nextState = !a.is_active;
+          return { ...a, is_active: nextState };
+        }
+        return a;
+      }));
+
+      if (supabase && isSupabaseConfigured) {
+        supabase
+          .from('parish_announcements')
+          .update({ is_active: nextState })
+          .eq('id', id)
+          .then(() => {}, () => {});
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to toggle announcement' };
+    }
+  }, []);
+
+  const getActiveAnnouncementsForUser = useCallback((userRole?: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    return announcements.filter(a => {
+      if (!a.is_active) return false;
+      if (a.start_date && a.start_date > today) return false;
+      if (a.end_date && a.end_date < today) return false;
+      if (a.target_audience !== 'all' && userRole && a.target_audience !== userRole) return false;
+      return true;
+    });
+  }, [announcements]);
+
   const markNotificationAsRead = useCallback((notificationId: string) => {
     setNotificationLogs(prev => prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n));
     if (supabase && isSupabaseConfigured) {
@@ -1517,11 +1938,13 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         getPriestSlots,
         getUserActiveBooking,
         getUserBookings,
+        getConfessionRhythm,
         getPriestBookings,
         getSecretaryAssignedPriests,
         bookSlot,
         cancelBooking,
         updateBookingAttendance,
+        updatePriestPrivateNotes,
         previewScheduleChangeImpact,
         updatePriestSchedule,
         addPriestOverride,
@@ -1531,6 +1954,12 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updateUser,
         deleteUser,
         adminResetPassword,
+        announcements,
+        createAnnouncement,
+        updateAnnouncement,
+        deleteAnnouncement,
+        toggleAnnouncementActive,
+        getActiveAnnouncementsForUser,
         markNotificationAsRead,
         markAllNotificationsAsRead,
         refreshData,

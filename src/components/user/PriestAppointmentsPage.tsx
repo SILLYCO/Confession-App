@@ -7,14 +7,16 @@ import { ArrowLeft, Clock, Church, Calendar } from 'lucide-react';
 
 interface PriestAppointmentsPageProps {
   priest: User;
-  onBack: () => void;
+  onBack?: () => void;
   onBookingComplete?: () => void;
+  isExclusiveConfessionFather?: boolean;
 }
 
 export const PriestAppointmentsPage: React.FC<PriestAppointmentsPageProps> = ({
   priest,
   onBack,
   onBookingComplete,
+  isExclusiveConfessionFather = false,
 }) => {
   const { t, language } = useTranslation();
   const { priestProfiles, getPriestSlots } = useAppStore();
@@ -26,18 +28,25 @@ export const PriestAppointmentsPage: React.FC<PriestAppointmentsPageProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in">
       
-      {/* Top Navigation Bar with Back Button */}
+      {/* Top Navigation Bar */}
       <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-xs sm:text-sm font-bold text-navy-950 shadow-sm transition"
-        >
-          <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
-          <span>{t.userFlow.backToPriestsList}</span>
-        </button>
+        {!isExclusiveConfessionFather && onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-xs sm:text-sm font-bold text-navy-950 shadow-sm transition"
+          >
+            <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
+            <span>{t.userFlow.backToPriestsList}</span>
+          </button>
+        ) : (
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gold-100 text-church-950 border border-gold-300 text-xs sm:text-sm font-bold shadow-sm">
+            <Church className="w-4 h-4 text-gold-600" />
+            <span>✨ {t.auth.yourConfessionFatherBadge}</span>
+          </div>
+        )}
 
-        <div className="text-xs text-stone-500 hidden sm:block">
+        <div className="text-xs text-stone-500 font-medium">
           <span>{t.churchName}</span>
         </div>
       </div>
