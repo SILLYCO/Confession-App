@@ -84,6 +84,21 @@ export const SlotCalendar: React.FC<SlotCalendarProps> = ({ priest, onBookingCom
 
   const availableCountOnSelectedDay = daySlots.filter(s => s.status === 'available').length;
 
+  // Compute exact slot duration for the selected day
+  const selectedDayDuration = useMemo(() => {
+    if (daySlots.length > 0) {
+      const first = daySlots[0];
+      const [sh, sm] = first.start_time.split(':').map(Number);
+      const [eh, em] = first.end_time.split(':').map(Number);
+      const diff = (eh * 60 + em) - (sh * 60 + sm);
+      if (diff > 0) return diff;
+    }
+    const dayOfWeek = selectedDate.getDay();
+    const override = profile?.schedule_overrides?.find(o => o.date === selectedDateStr);
+    const matchingSchedule = profile?.weekly_schedule?.find(w => w.dayOfWeek === dayOfWeek);
+    return override?.avg_confession_minutes || matchingSchedule?.avg_confession_minutes || profile?.avg_confession_minutes || 15;
+  }, [daySlots, selectedDate, selectedDateStr, profile]);
+
   // Helper to check if a slot is booked by current user
   const isSlotBookedByMe = (slot: Slot) => {
     if (!currentUser) return false;
@@ -234,8 +249,8 @@ export const SlotCalendar: React.FC<SlotCalendarProps> = ({ priest, onBookingCom
             </h4>
             <p className="text-xs text-stone-500 mt-0.5">
               {language === 'ar' 
-                ? `${availableCountOnSelectedDay} موعد متاح (مدة كل موعد ${profile?.avg_confession_minutes || 15} دقيقة)` 
-                : `${availableCountOnSelectedDay} slots available (${profile?.avg_confession_minutes || 15} mins each)`}
+                ? `${availableCountOnSelectedDay} موعد متاح (مدة كل موعد ${selectedDayDuration} دقيقة)` 
+                : `${availableCountOnSelectedDay} slots available (${selectedDayDuration} mins each)`}
             </p>
           </div>
 

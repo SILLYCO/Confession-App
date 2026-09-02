@@ -65,16 +65,66 @@ export function generateSlotsForPriest(
 
     if (override) {
       if (override.isUnavailable) {
-        // Complete blackout date for this priest
+        // Full day blackout -> no slots at all for this date
+        if (override.isFullDay !== false && !override.startTime) {
+          continue;
+        }
+
+        // Partial blackout window -> take regular schedule and exclude slots overlapping the blackout interval
+        if (override.startTime && override.endTime) {
+          const unavailStart = override.startTime;
+          const unavailEnd = override.endTime;
+          const daySchedules = weeklySchedule.filter((s) => s.dayOfWeek === dayOfWeek);
+
+          for (const sched of daySchedules) {
+            const windowDuration = sched.avg_confession_minutes || avgConfessionMinutes;
+            const generatedWindows = splitTimeWindowIntoSlots(
+              sched.startTime,
+              sched.endTime,
+              windowDuration
+            );
+
+            for (const win of generatedWindows) {
+              // Check if slot overlaps with unavailable interval
+              const overlapsWithBlackout = (win.startTime < unavailEnd && win.endTime > unavailStart);
+              if (overlapsWithBlackout) {
+                continue;
+              }
+
+              const slotId = `slot_${priestId}_${dateStr}_${win.startTime.replace(':', '')}`;
+              const matchedBooking = existingBookings.find(
+                (b) => b.priest_id === priestId && b.date === dateStr && b.start_time.startsWith(win.startTime) && b.status === 'confirmed'
+              );
+
+              let status: SlotStatus = 'available';
+              if (matchedBooking) {
+                status = 'booked';
+              } else if (isSlotInPast(dateStr, win.startTime)) {
+                status = 'unavailable';
+              }
+
+              slots.push({
+                id: slotId,
+                priest_id: priestId,
+                date: dateStr,
+                start_time: win.startTime,
+                end_time: win.endTime,
+                status,
+                booking_id: matchedBooking?.id,
+              });
+            }
+          }
+        }
         continue;
       }
 
-      // Custom window for this override date
+      // Custom extra availability window for this override date
       if (override.startTime && override.endTime) {
+        const overrideDuration = override.avg_confession_minutes || avgConfessionMinutes;
         const generatedWindows = splitTimeWindowIntoSlots(
           override.startTime,
           override.endTime,
-          avgConfessionMinutes
+          overrideDuration
         );
 
         for (const win of generatedWindows) {
@@ -108,10 +158,11 @@ export function generateSlotsForPriest(
       const daySchedules = weeklySchedule.filter((s) => s.dayOfWeek === dayOfWeek);
 
       for (const sched of daySchedules) {
+        const windowDuration = sched.avg_confession_minutes || avgConfessionMinutes;
         const generatedWindows = splitTimeWindowIntoSlots(
           sched.startTime,
           sched.endTime,
-          avgConfessionMinutes
+          windowDuration
         );
 
         for (const win of generatedWindows) {

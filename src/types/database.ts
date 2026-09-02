@@ -17,15 +17,18 @@ export interface WeeklyScheduleItem {
   dayOfWeek: number; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
   startTime: string; // "HH:MM" e.g. "17:00"
   endTime: string;   // "HH:MM" e.g. "20:00"
+  avg_confession_minutes?: number; // Optional per-window/per-day duration override
 }
 
 export interface ScheduleOverride {
   id: string;
   date: string; // "YYYY-MM-DD"
+  isUnavailable: boolean; // true = blackout / apology
+  isFullDay?: boolean; // true = all day, false = specific time window (defaults to true if isUnavailable && !startTime)
   startTime?: string; // "HH:MM"
   endTime?: string;   // "HH:MM"
-  isUnavailable: boolean; // true = complete blackout / emergency cancel
   reason?: string; // e.g. "Travel to Monastery", "Feast Liturgy", "Emergency"
+  avg_confession_minutes?: number; // Optional custom duration for this override date
 }
 
 export type MaritalStatus = 'single' | 'married' | 'widowed' | 'divorced';
