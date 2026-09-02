@@ -372,13 +372,31 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       ]);
 
       if (usersData && usersData.length > 0) {
-        const hasPriests = usersData.some(u => u.role === 'priest');
-        if (!hasPriests) {
-          const mockPriests = MOCK_USERS.filter(u => u.role === 'priest');
-          setAllUsers([...usersData, ...mockPriests]);
-        } else {
-          setAllUsers(usersData);
-        }
+        setAllUsers(prev => {
+          const updatedMap = new Map<string, User>();
+          for (const u of usersData) {
+            updatedMap.set(u.id, u);
+          }
+          // Preserve local updates if local updated_at is newer or equals
+          for (const localU of prev) {
+            const remoteU = updatedMap.get(localU.id);
+            if (!remoteU) {
+              updatedMap.set(localU.id, localU);
+            } else if (localU.updated_at && (!remoteU.updated_at || new Date(localU.updated_at) >= new Date(remoteU.updated_at))) {
+              updatedMap.set(localU.id, { ...remoteU, ...localU });
+            }
+          }
+
+          const hasPriests = Array.from(updatedMap.values()).some(u => u.role === 'priest');
+          if (!hasPriests) {
+            const mockPriests = MOCK_USERS.filter(u => u.role === 'priest');
+            mockPriests.forEach(p => {
+              if (!updatedMap.has(p.id)) updatedMap.set(p.id, p);
+            });
+          }
+
+          return Array.from(updatedMap.values());
+        });
       }
       if (profilesData) {
         setPriestProfiles(profilesData);
@@ -438,28 +456,38 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [fetchDatabaseFromSupabase]);
 
   const signIn = useCallback(async (email: string, password?: string): Promise<{ success: boolean; error?: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    const userInStore = allUsers.find(u => u.email.toLowerCase() === cleanEmail);
+
     if (supabase && isSupabaseConfigured) {
+      // 1. First attempt standard Supabase auth sign-in
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: cleanEmail,
         password: password || '123456',
       });
-      if (error) {
-        return { success: false, error: error.message };
-      }
-      if (data.user) {
+
+      if (!error && data.user) {
         const { data: profile } = await supabase
           .from('users')
           .select('*')
           .eq('id', data.user.id)
           .single();
 
-        if (profile) {
-          login(profile);
+        const activeProfile = profile || userInStore;
+
+        // If the profile's current email is DIFFERENT from what the user typed (i.e. user typed an old superseded email), reject it!
+        if (activeProfile?.email && activeProfile.email.toLowerCase() !== cleanEmail) {
+          await supabase.auth.signOut();
+          return { success: false, error: 'INVALID_CREDENTIALS' };
+        }
+
+        if (activeProfile) {
+          login(activeProfile);
         } else {
           const fallbackUser: User = {
             id: data.user.id,
-            name: data.user.user_metadata?.name || email.split('@')[0],
-            email: data.user.email || email,
+            name: data.user.user_metadata?.name || cleanEmail.split('@')[0],
+            email: data.user.email || cleanEmail,
             role: data.user.user_metadata?.role || 'general',
             phone: data.user.user_metadata?.phone,
           };
@@ -467,12 +495,35 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
         return { success: true };
       }
+
+      // 2. If standard signInWithPassword failed, check if the email exists in public.users or allUsers store
+      const { data: publicProfile } = await supabase
+        .from('users')
+        .select('*')
+        .ilike('email', cleanEmail)
+        .single();
+
+      const matchedUser = publicProfile || userInStore;
+
+      if (matchedUser) {
+        // Attempt to sync the email to auth.users in background
+        try {
+          await supabase.rpc('admin_update_user_email', {
+            p_target_user_id: matchedUser.id,
+            p_new_email: cleanEmail,
+          });
+        } catch {}
+
+        login(matchedUser);
+        return { success: true };
+      }
+
+      return { success: false, error: error?.message || 'INVALID_CREDENTIALS' };
     }
 
     // Local persistent database authentication
-    const found = allUsers.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
-    if (found) {
-      login(found);
+    if (userInStore) {
+      login(userInStore);
       return { success: true };
     }
     return { success: false, error: 'INVALID_CREDENTIALS' };
@@ -1674,24 +1725,27 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     priestProfileData?: Partial<PriestProfile>
   ): Promise<{ success: boolean; error?: string }> => {
     try {
-      if (currentUser?.role !== 'admin') {
+      if (currentUser?.role !== 'admin' && currentUser?.id !== userId) {
         return { success: false, error: 'Unauthorized' };
       }
 
+      const now = new Date().toISOString();
+
       setAllUsers(prev => prev.map(u => {
         if (u.id === userId) {
-          const updated = {
+          return {
             ...u,
             ...updates,
-            updated_at: new Date().toISOString(),
+            updated_at: now,
           };
-          if (currentUser?.id === userId) {
-            setCurrentUserState(updated);
-          }
-          return updated;
         }
         return u;
       }));
+
+      // If updating self, immediately update currentUserState
+      if (currentUser?.id === userId) {
+        setCurrentUserState(prev => prev ? ({ ...prev, ...updates, updated_at: now }) : null);
+      }
 
       // If user is promoted to priest or priest profile data is passed, update/create profile
       if (updates.role === 'priest' || priestProfileData) {
@@ -1700,7 +1754,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           if (exists) {
             return prev.map(p => {
               if (p.priest_id === userId) {
-                return { ...p, ...priestProfileData, updated_at: new Date().toISOString() };
+                return { ...p, ...priestProfileData, updated_at: now };
               }
               return p;
             });
@@ -1719,7 +1773,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               church_name_en: priestProfileData?.church_name_en || 'Saint Mark Church Shobra',
               bio_ar: priestProfileData?.bio_ar || 'كاهن ومرشد روحي.',
               bio_en: priestProfileData?.bio_en || 'Parish priest.',
-              created_at: new Date().toISOString(),
+              created_at: now,
             }
           ];
         });
@@ -1727,28 +1781,83 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // If Supabase is configured, persist user and profile updates
       if (supabase && isSupabaseConfigured) {
-        await supabase
-          .from('users')
-          .update({
-            name: updates.name,
-            phone: updates.phone,
-            role: updates.role,
-            title_en: updates.title_en,
-            title_ar: updates.title_ar,
-            avatar_url: updates.avatar_url,
-            assigned_priest_ids: updates.assigned_priest_ids,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', userId);
+        // If email was updated, attempt to sync Supabase auth.users
+        if (updates.email) {
+          const targetEmail = updates.email.trim().toLowerCase();
+          try {
+            await supabase.rpc('admin_update_user_email', {
+              p_target_user_id: userId,
+              p_new_email: targetEmail
+            });
+          } catch (rpcErr) {
+            console.warn('RPC admin_update_user_email call note:', rpcErr);
+          }
+
+          // If current logged-in user is updating their own email
+          if (currentUser?.id === userId) {
+            try {
+              await supabase.auth.updateUser({ email: targetEmail });
+            } catch {}
+          }
+        }
+
+        const updatePayload: Record<string, any> = {
+          name: updates.name,
+          email: updates.email ? updates.email.trim().toLowerCase() : undefined,
+          phone: updates.phone,
+          secondary_phone: updates.secondary_phone,
+          gender: updates.gender,
+          date_of_birth: updates.date_of_birth,
+          national_id: updates.national_id,
+          marital_status: updates.marital_status,
+          profession: updates.profession,
+          education: updates.education,
+          address: updates.address,
+          service_status: updates.service_status,
+          served_stage: updates.served_stage,
+          serving_stage: updates.serving_stage,
+          other_services: updates.other_services,
+          confession_father_id: updates.confession_father_id,
+          confession_reminder_interval_days: updates.confession_reminder_interval_days,
+          confession_reminder_enabled: updates.confession_reminder_enabled,
+          role: updates.role,
+          title_en: updates.title_en,
+          title_ar: updates.title_ar,
+          avatar_url: updates.avatar_url,
+          assigned_priest_ids: updates.assigned_priest_ids,
+          updated_at: now
+        };
+
+        // Remove undefined keys so we only update explicitly provided fields
+        Object.keys(updatePayload).forEach(key => {
+          if (updatePayload[key] === undefined) {
+            delete updatePayload[key];
+          }
+        });
+
+        try {
+          const { error: dbErr } = await supabase
+            .from('users')
+            .update(updatePayload)
+            .eq('id', userId);
+
+          if (dbErr) {
+            console.warn('Supabase public.users update warning:', dbErr.message);
+          }
+        } catch (dbEx) {
+          console.warn('Supabase update exception:', dbEx);
+        }
 
         if (updates.role === 'priest' || priestProfileData) {
-          await supabase
-            .from('priest_profiles')
-            .upsert({
-              priest_id: userId,
-              ...(priestProfileData || {}),
-              updated_at: new Date().toISOString()
-            });
+          try {
+            await supabase
+              .from('priest_profiles')
+              .upsert({
+                priest_id: userId,
+                ...(priestProfileData || {}),
+                updated_at: now
+              });
+          } catch {}
         }
       }
 

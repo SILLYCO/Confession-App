@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { useAppStore } from '../../lib/store';
-import { User, UserRole, DEFAULT_SKELETON_AVATAR } from '../../types/database';
+import { User, UserRole, DEFAULT_SKELETON_AVATAR, Gender, MaritalStatus, ChurchServiceRole } from '../../types/database';
 import { Badge } from '../common/Badge';
 import { UserDetailsModal } from './UserDetailsModal';
 import { 
@@ -21,8 +21,60 @@ import {
   Upload,
   Church,
   ShieldCheck,
-  Users
+  Users,
+  User as UserIcon,
+  Phone,
+  Mail,
+  Lock,
+  MapPin,
+  CreditCard,
+  Calendar,
+  Heart,
+  Briefcase,
+  GraduationCap,
+  Award,
+  Clock
 } from 'lucide-react';
+
+const SERVED_STAGE_PRESETS_AR = [
+  'حضانة',
+  'المرحلة الابتدائية (١ - ٦ ابتدائي)',
+  'المرحلة الإعدادية (١ - ٣ إعدادي)',
+  'المرحلة الثانوية (١ - ٣ ثانوي)',
+  'مرحلة الجامعة',
+  'مرحلة الخريجين والشباب',
+  'أخرى (تحديد يدوي)',
+];
+
+const SERVED_STAGE_PRESETS_EN = [
+  'Nursery / Preschool',
+  'Primary Stage (1st - 6th)',
+  'Preparatory Stage (1st - 3rd Prep)',
+  'Secondary Stage (1st - 3rd High School)',
+  'University / College',
+  'Graduates & Working Youth',
+  'Other (Custom Specify)',
+];
+
+const SERVING_STAGE_PRESETS_AR = [
+  'خدمة حضانة',
+  'خدمة ابتدائي',
+  'خدمة إعدادي',
+  'خدمة ثانوي',
+  'خدمة جامعة وخريجين',
+  'إعداد خدام',
+  'خدمة أخرى (تحديد يدوي)',
+];
+
+const SERVING_STAGE_PRESETS_EN = [
+  'Nursery / Preschool Service',
+  'Primary Stage Service',
+  'Preparatory Stage Service',
+  'Secondary Stage Service',
+  'Youth & College Service',
+  'Servants Preparation',
+  'Other Service (Custom Specify)',
+];
 
 interface SuperAdminUserDirectoryProps {
   onOpenPriestWizard: () => void;
@@ -80,13 +132,32 @@ export const SuperAdminUserDirectory: React.FC<SuperAdminUserDirectoryProps> = (
   const [isResetting, setIsResetting] = useState(false);
 
   // Edit user form state
+  const [editActiveTab, setEditActiveTab] = useState<'personal' | 'contact' | 'church' | 'privileges'>('personal');
   const [editRole, setEditRole] = useState<UserRole>('general');
   const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [editSecondaryPhone, setEditSecondaryPhone] = useState('');
+  const [editGender, setEditGender] = useState<Gender>('male');
+  const [editDob, setEditDob] = useState('');
+  const [editNationalId, setEditNationalId] = useState('');
+  const [editMaritalStatus, setEditMaritalStatus] = useState<MaritalStatus>('single');
+  const [editEducation, setEditEducation] = useState('');
+  const [editProfession, setEditProfession] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editServiceStatus, setEditServiceStatus] = useState<ChurchServiceRole>('general_member');
+  const [editServedStageSelect, setEditServedStageSelect] = useState('');
+  const [editServedStageCustom, setEditServedStageCustom] = useState('');
+  const [editServingStageSelect, setEditServingStageSelect] = useState('');
+  const [editServingStageCustom, setEditServingStageCustom] = useState('');
+  const [editOtherServices, setEditOtherServices] = useState('');
+  const [editConfessionFatherId, setEditConfessionFatherId] = useState('');
   const [editAvatarUrl, setEditAvatarUrl] = useState('');
   const [editTitleEn, setEditTitleEn] = useState('');
   const [editTitleAr, setEditTitleAr] = useState('');
   const [editAssignedPriests, setEditAssignedPriests] = useState<string[]>([]);
+  const [editReminderInterval, setEditReminderInterval] = useState<number>(30);
+  const [editReminderEnabled, setEditReminderEnabled] = useState<boolean>(true);
 
   const generateRandomPassword = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
@@ -139,14 +210,59 @@ export const SuperAdminUserDirectory: React.FC<SuperAdminUserDirectoryProps> = (
   };
 
   const handleOpenEditModal = (user: User) => {
-    setEditingUser(user);
-    setEditRole(user.role);
-    setEditName(user.name);
-    setEditPhone(user.phone || '');
-    setEditAvatarUrl(user.avatar_url || '');
-    setEditTitleEn(user.title_en || user.name);
-    setEditTitleAr(user.title_ar || user.name);
-    setEditAssignedPriests(user.assigned_priest_ids || priests.map(p => p.id));
+    const liveUser = allUsers.find(u => u.id === user.id) || user;
+    setEditingUser(liveUser);
+    setEditActiveTab('personal');
+    setEditRole(liveUser.role);
+    setEditName(liveUser.name);
+    setEditEmail(liveUser.email);
+    setEditPhone(liveUser.phone || '');
+    setEditSecondaryPhone(liveUser.secondary_phone || '');
+    setEditGender(liveUser.gender || 'male');
+    setEditDob(liveUser.date_of_birth || '');
+    setEditNationalId(liveUser.national_id || '');
+    setEditMaritalStatus(liveUser.marital_status || 'single');
+    setEditEducation(liveUser.education || '');
+    setEditProfession(liveUser.profession || '');
+    setEditAddress(liveUser.address || '');
+    setEditServiceStatus(liveUser.service_status || 'general_member');
+
+    // Parse served stage
+    const served = liveUser.served_stage || '';
+    const isServedPreset = SERVED_STAGE_PRESETS_AR.includes(served) || SERVED_STAGE_PRESETS_EN.includes(served);
+    if (served && isServedPreset) {
+      setEditServedStageSelect(served);
+      setEditServedStageCustom('');
+    } else if (served) {
+      setEditServedStageSelect(language === 'ar' ? 'أخرى (تحديد يدوي)' : 'Other (Custom Specify)');
+      setEditServedStageCustom(served);
+    } else {
+      setEditServedStageSelect(language === 'ar' ? 'المرحلة الثانوية (١ - ٣ ثانوي)' : 'Secondary Stage (1st - 3rd High School)');
+      setEditServedStageCustom('');
+    }
+
+    // Parse serving stage
+    const serving = liveUser.serving_stage || '';
+    const isServingPreset = SERVING_STAGE_PRESETS_AR.includes(serving) || SERVING_STAGE_PRESETS_EN.includes(serving);
+    if (serving && isServingPreset) {
+      setEditServingStageSelect(serving);
+      setEditServingStageCustom('');
+    } else if (serving) {
+      setEditServingStageSelect(language === 'ar' ? 'خدمة أخرى (تحديد يدوي)' : 'Other Service (Custom Specify)');
+      setEditServingStageCustom(serving);
+    } else {
+      setEditServingStageSelect(language === 'ar' ? 'خدمة إعدادي' : 'Preparatory Stage Service');
+      setEditServingStageCustom('');
+    }
+
+    setEditOtherServices(liveUser.other_services || '');
+    setEditConfessionFatherId(liveUser.confession_father_id || priests[0]?.id || '');
+    setEditAvatarUrl(liveUser.avatar_url || '');
+    setEditTitleEn(liveUser.title_en || liveUser.name);
+    setEditTitleAr(liveUser.title_ar || liveUser.name);
+    setEditAssignedPriests(liveUser.assigned_priest_ids || priests.map(p => p.id));
+    setEditReminderInterval(liveUser.confession_reminder_interval_days || 30);
+    setEditReminderEnabled(liveUser.confession_reminder_enabled !== false);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (url: string) => void) => {
@@ -234,23 +350,68 @@ export const SuperAdminUserDirectory: React.FC<SuperAdminUserDirectoryProps> = (
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
+
+    if (!editName.trim()) {
+      setFeedback({ type: 'error', message: t.auth.nameRequired });
+      return;
+    }
+
+    if (editNationalId.trim() && !/^\d{14}$/.test(editNationalId.trim())) {
+      setFeedback({ type: 'error', message: t.auth.nationalIdValidationErr });
+      return;
+    }
+
     setIsSubmitting(true);
     setFeedback(null);
 
-    const result = await updateUser(editingUser.id, {
+    let finalServedStage: string | undefined = undefined;
+    let finalServingStage: string | undefined = undefined;
+
+    if (editServiceStatus === 'served') {
+      finalServedStage = (editServedStageSelect.includes('أخرى') || editServedStageSelect.includes('Other'))
+        ? editServedStageCustom.trim()
+        : editServedStageSelect;
+    } else if (editServiceStatus === 'servant') {
+      finalServingStage = (editServingStageSelect.includes('أخرى') || editServingStageSelect.includes('Other'))
+        ? editServingStageCustom.trim()
+        : editServingStageSelect;
+    }
+
+    const updates: Partial<User> = {
       name: editName.trim(),
+      email: editEmail.trim(),
       phone: editPhone.trim() || undefined,
+      secondary_phone: editSecondaryPhone.trim() || undefined,
+      gender: editGender,
+      date_of_birth: editDob || undefined,
+      national_id: editNationalId.trim() || undefined,
+      marital_status: editMaritalStatus,
+      education: editEducation.trim() || undefined,
+      profession: editProfession.trim() || undefined,
+      address: editAddress.trim() || undefined,
+      service_status: editServiceStatus,
+      served_stage: finalServedStage,
+      serving_stage: finalServingStage,
+      other_services: editOtherServices.trim() || undefined,
+      confession_father_id: editConfessionFatherId || undefined,
       role: editRole,
       avatar_url: editAvatarUrl || undefined,
       title_en: editTitleEn.trim() || editName.trim(),
       title_ar: editTitleAr.trim() || editName.trim(),
       assigned_priest_ids: editRole === 'secretary' ? editAssignedPriests : undefined,
-    });
+      confession_reminder_interval_days: editReminderInterval,
+      confession_reminder_enabled: editReminderEnabled,
+    };
+
+    const result = await updateUser(editingUser.id, updates);
 
     setIsSubmitting(false);
 
     if (result.success) {
       setFeedback({ type: 'success', message: t.adminFlow.userUpdatedSuccess });
+      if (selectedUserForDetails?.id === editingUser.id) {
+        setSelectedUserForDetails(prev => prev ? { ...prev, ...updates } : null);
+      }
       setEditingUser(null);
     } else {
       setFeedback({ type: 'error', message: result.error || 'Failed to update user' });
@@ -737,111 +898,692 @@ export const SuperAdminUserDirectory: React.FC<SuperAdminUserDirectoryProps> = (
         </div>
       )}
 
-      {/* EDIT USER MODAL */}
+      {/* COMPREHENSIVE EDIT USER MODAL */}
       {editingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden my-8">
-            <div className="bg-navy-950 text-white p-6 flex items-center justify-between border-b border-navy-800">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gold-500 text-navy-950 flex items-center justify-center font-bold">
-                  <Edit className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold font-serif">{t.adminFlow.editUserTitle}</h3>
-                  <p className="text-xs text-stone-300">{editingUser.email}</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden my-6">
+            
+            {/* Header */}
+            <div className="bg-gradient-to-r from-navy-950 via-slate-900 to-navy-900 text-white p-6 flex items-start justify-between border-b border-gold-500/30">
+              <div className="flex items-center gap-4">
+                <img
+                  src={editAvatarUrl || editingUser.avatar_url || DEFAULT_SKELETON_AVATAR}
+                  alt={editingUser.name}
+                  className="w-14 h-14 rounded-2xl object-cover ring-2 ring-gold-400 bg-stone-800 shrink-0 shadow"
+                />
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Badge role={editRole} size="sm" />
+                    <span className="text-[11px] text-stone-400 font-mono">ID: {editingUser.id.slice(0, 8)}</span>
+                  </div>
+                  <h3 className="text-lg font-bold font-serif leading-tight">
+                    {language === 'ar' ? 'تعديل بيانات وصلاحيات العضو' : 'Edit User Profile & Permissions'}
+                  </h3>
+                  <p className="text-xs text-stone-300 font-mono">
+                    {editingUser.email}
+                  </p>
                 </div>
               </div>
-              <button onClick={() => setEditingUser(null)} className="text-stone-400 hover:text-white">
+
+              <button
+                onClick={() => setEditingUser(null)}
+                className="p-2 rounded-xl text-stone-400 hover:text-white hover:bg-white/10 transition"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
-              
-              <div>
-                <label className="block text-xs font-bold text-navy-950 mb-1">
-                  {t.adminFlow.userRole}
-                </label>
-                <select
-                  value={editRole}
-                  onChange={(e) => setEditRole(e.target.value as UserRole)}
-                  className="w-full text-xs rounded-xl border border-stone-300 p-2.5 bg-white font-semibold text-navy-950"
-                >
-                  <option value="general">{t.roles.general}</option>
-                  <option value="secretary">{t.roles.secretary}</option>
-                  <option value="priest">{t.roles.priest}</option>
-                  <option value="admin">{t.roles.admin}</option>
-                </select>
-              </div>
+            {/* Navigation Tabs */}
+            <div className="grid grid-cols-4 bg-stone-100 p-1.5 border-b border-stone-200 text-xs font-bold text-stone-600">
+              <button
+                type="button"
+                onClick={() => setEditActiveTab('personal')}
+                className={`py-2.5 px-1 rounded-xl transition flex flex-col sm:flex-row items-center justify-center gap-1.5 ${
+                  editActiveTab === 'personal'
+                    ? 'bg-navy-950 text-gold-400 shadow-sm'
+                    : 'hover:text-navy-950 hover:bg-stone-200/60'
+                }`}
+              >
+                <UserIcon className="w-3.5 h-3.5 shrink-0" />
+                <span className="text-[11px] truncate">{t.auth.sectionIdentity}</span>
+              </button>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-navy-950 mb-1">
-                    {t.adminFlow.userName}
-                  </label>
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="w-full text-xs rounded-xl border border-stone-300 p-2.5"
-                  />
-                </div>
+              <button
+                type="button"
+                onClick={() => setEditActiveTab('contact')}
+                className={`py-2.5 px-1 rounded-xl transition flex flex-col sm:flex-row items-center justify-center gap-1.5 ${
+                  editActiveTab === 'contact'
+                    ? 'bg-navy-950 text-gold-400 shadow-sm'
+                    : 'hover:text-navy-950 hover:bg-stone-200/60'
+                }`}
+              >
+                <Phone className="w-3.5 h-3.5 shrink-0" />
+                <span className="text-[11px] truncate">{t.auth.sectionContact}</span>
+              </button>
 
-                <div>
-                  <label className="block text-xs font-bold text-navy-950 mb-1">
-                    {t.adminFlow.userPhone}
-                  </label>
-                  <input
-                    type="tel"
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value)}
-                    className="w-full text-xs rounded-xl border border-stone-300 p-2.5"
-                  />
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setEditActiveTab('church')}
+                className={`py-2.5 px-1 rounded-xl transition flex flex-col sm:flex-row items-center justify-center gap-1.5 ${
+                  editActiveTab === 'church'
+                    ? 'bg-navy-950 text-gold-400 shadow-sm'
+                    : 'hover:text-navy-950 hover:bg-stone-200/60'
+                }`}
+              >
+                <Church className="w-3.5 h-3.5 shrink-0" />
+                <span className="text-[11px] truncate">{t.auth.sectionChurch}</span>
+              </button>
 
-              {editRole === 'secretary' && (
-                <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-200 space-y-2">
-                  <label className="block text-xs font-bold text-purple-950">
-                    {t.adminFlow.assignPriestsLabel}
-                  </label>
-                  <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                    {priests.map((priest) => {
-                      const isAssigned = editAssignedPriests.includes(priest.id);
-                      return (
-                        <label
-                          key={priest.id}
-                          className="flex items-center gap-2 text-xs text-stone-700 bg-white p-2 rounded-xl border border-purple-100 cursor-pointer"
+              <button
+                type="button"
+                onClick={() => setEditActiveTab('privileges')}
+                className={`py-2.5 px-1 rounded-xl transition flex flex-col sm:flex-row items-center justify-center gap-1.5 ${
+                  editActiveTab === 'privileges'
+                    ? 'bg-navy-950 text-gold-400 shadow-sm'
+                    : 'hover:text-navy-950 hover:bg-stone-200/60'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                <span className="text-[11px] truncate">{language === 'ar' ? 'الصلاحيات' : 'Role & Photo'}</span>
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleEditSubmit}>
+              <div className="p-6 space-y-4 max-h-[58vh] overflow-y-auto">
+                
+                {/* ---------------- TAB 1: PERSONAL IDENTITY ---------------- */}
+                {editActiveTab === 'personal' && (
+                  <div className="space-y-4 animate-in fade-in">
+                    
+                    {/* Full Name */}
+                    <div>
+                      <label className="block text-xs font-bold text-navy-950 mb-1">
+                        {t.auth.fullNameLabel} <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <UserIcon className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
+                        <input
+                          type="text"
+                          required
+                          value={editName}
+                          onChange={(e) => {
+                            setEditName(e.target.value);
+                            setEditTitleEn(e.target.value);
+                            setEditTitleAr(e.target.value);
+                          }}
+                          className="w-full text-xs ps-10 pe-4 py-2.5 rounded-xl border border-stone-300 bg-white focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Gender Selector */}
+                    <div>
+                      <label className="block text-xs font-bold text-navy-950 mb-1.5">
+                        {t.auth.genderLabel}
+                      </label>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setEditGender('male')}
+                          className={`p-2.5 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 ${
+                            editGender === 'male'
+                              ? 'bg-navy-950 text-gold-400 border-navy-950 ring-2 ring-gold-400 shadow-sm'
+                              : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50'
+                          }`}
                         >
+                          <UserIcon className="w-4 h-4" />
+                          <span>{t.auth.genderMale}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditGender('female')}
+                          className={`p-2.5 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-2 ${
+                            editGender === 'female'
+                              ? 'bg-navy-950 text-gold-400 border-navy-950 ring-2 ring-gold-400 shadow-sm'
+                              : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50'
+                          }`}
+                        >
+                          <UserIcon className="w-4 h-4" />
+                          <span>{t.auth.genderFemale}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Date of Birth & National ID */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-navy-950 mb-1">
+                          {t.auth.dateOfBirthLabel}
+                        </label>
+                        <div className="relative">
+                          <Calendar className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
+                          <input
+                            type="date"
+                            max={new Date().toISOString().split('T')[0]}
+                            value={editDob}
+                            onChange={(e) => setEditDob(e.target.value)}
+                            className="w-full text-xs ps-10 pe-4 py-2.5 rounded-xl border border-stone-300 bg-white focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-bold text-navy-950">
+                            {t.auth.nationalIdLabel}
+                          </label>
+                          <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded ${
+                            editNationalId.length === 14 ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-600'
+                          }`}>
+                            {editNationalId.length}/14
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <CreditCard className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
+                          <input
+                            type="text"
+                            maxLength={14}
+                            inputMode="numeric"
+                            value={editNationalId}
+                            onChange={(e) => {
+                              const num = e.target.value.replace(/\D/g, '');
+                              setEditNationalId(num);
+                            }}
+                            placeholder="14 digits (الرقم القومي)"
+                            className="w-full text-xs ps-10 pe-4 py-2.5 rounded-xl border border-stone-300 bg-white font-mono tracking-wider focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Marital Status */}
+                    <div>
+                      <label className="block text-xs font-bold text-navy-950 mb-1.5">
+                        {t.auth.maritalStatusLabel}
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {[
+                          { key: 'single', label: t.auth.maritalSingle },
+                          { key: 'married', label: t.auth.maritalMarried },
+                          { key: 'widowed', label: t.auth.maritalWidowed },
+                          { key: 'divorced', label: t.auth.maritalDivorced },
+                        ].map(({ key, label }) => (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => setEditMaritalStatus(key as MaritalStatus)}
+                            className={`p-2 rounded-xl text-xs font-bold border transition ${
+                              editMaritalStatus === key
+                                ? 'bg-navy-950 text-gold-400 border-navy-950 ring-2 ring-gold-400 shadow-sm'
+                                : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Education & Profession */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-navy-950 mb-1">
+                          {t.auth.educationLabel}
+                        </label>
+                        <div className="relative">
+                          <GraduationCap className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
+                          <input
+                            type="text"
+                            value={editEducation}
+                            onChange={(e) => setEditEducation(e.target.value)}
+                            placeholder={t.auth.educationPlaceholder}
+                            className="w-full text-xs ps-10 pe-4 py-2.5 rounded-xl border border-stone-300 bg-white focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-navy-950 mb-1">
+                          {t.auth.professionLabel}
+                        </label>
+                        <div className="relative">
+                          <Briefcase className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
+                          <input
+                            type="text"
+                            value={editProfession}
+                            onChange={(e) => setEditProfession(e.target.value)}
+                            placeholder={t.auth.professionPlaceholder}
+                            className="w-full text-xs ps-10 pe-4 py-2.5 rounded-xl border border-stone-300 bg-white focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+
+                {/* ---------------- TAB 2: CONTACT & RESIDENCE ---------------- */}
+                {editActiveTab === 'contact' && (
+                  <div className="space-y-4 animate-in fade-in">
+                    
+                    {/* Email */}
+                    <div>
+                      <label className="block text-xs font-bold text-navy-950 mb-1">
+                        {t.auth.emailLabel} <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <Mail className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
+                        <input
+                          type="email"
+                          required
+                          value={editEmail}
+                          onChange={(e) => setEditEmail(e.target.value)}
+                          className="w-full text-xs ps-10 pe-4 py-2.5 rounded-xl border border-stone-300 bg-white font-mono focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Primary & Secondary Phone */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-navy-950 mb-1">
+                          {t.auth.phoneLabel}
+                        </label>
+                        <div className="relative">
+                          <Phone className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
+                          <input
+                            type="tel"
+                            value={editPhone}
+                            onChange={(e) => setEditPhone(e.target.value)}
+                            placeholder="01012345678"
+                            className="w-full text-xs ps-10 pe-4 py-2.5 rounded-xl border border-stone-300 bg-white focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-navy-950 mb-1">
+                          {t.auth.secondaryPhoneLabel}
+                        </label>
+                        <div className="relative">
+                          <Phone className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
+                          <input
+                            type="tel"
+                            value={editSecondaryPhone}
+                            onChange={(e) => setEditSecondaryPhone(e.target.value)}
+                            placeholder={language === 'ar' ? 'رقم هاتف إضافي أو أرضي' : 'Secondary phone'}
+                            className="w-full text-xs ps-10 pe-4 py-2.5 rounded-xl border border-stone-300 bg-white focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Home Address */}
+                    <div>
+                      <label className="block text-xs font-bold text-navy-950 mb-1">
+                        {t.auth.addressLabel}
+                      </label>
+                      <div className="relative">
+                        <MapPin className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
+                        <input
+                          type="text"
+                          value={editAddress}
+                          onChange={(e) => setEditAddress(e.target.value)}
+                          placeholder={language === 'ar' ? 'العنوان بالتفصيل، الحي، المدينة' : 'Full street address, district, city'}
+                          className="w-full text-xs ps-10 pe-4 py-2.5 rounded-xl border border-stone-300 bg-white focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+
+                {/* ---------------- TAB 3: CHURCH FELLOWSHIP & CONFESSION ---------------- */}
+                {editActiveTab === 'church' && (
+                  <div className="space-y-4 animate-in fade-in">
+                    
+                    {/* Service Status */}
+                    <div>
+                      <label className="block text-xs font-bold text-navy-950 mb-1.5">
+                        {t.auth.serviceStatusLabel}
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditServiceStatus('general_member')}
+                          className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                            editServiceStatus === 'general_member'
+                              ? 'bg-navy-950 text-gold-400 border-navy-950 ring-2 ring-gold-400 shadow-sm'
+                              : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50'
+                          }`}
+                        >
+                          <Church className="w-4 h-4 shrink-0" />
+                          <span>{t.auth.generalMemberOption}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setEditServiceStatus('served')}
+                          className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                            editServiceStatus === 'served'
+                              ? 'bg-navy-950 text-gold-400 border-navy-950 ring-2 ring-gold-400 shadow-sm'
+                              : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50'
+                          }`}
+                        >
+                          <Users className="w-4 h-4 shrink-0" />
+                          <span>{t.auth.servedOption}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setEditServiceStatus('servant')}
+                          className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                            editServiceStatus === 'servant'
+                              ? 'bg-navy-950 text-gold-400 border-navy-950 ring-2 ring-gold-400 shadow-sm'
+                              : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50'
+                          }`}
+                        >
+                          <Award className="w-4 h-4 shrink-0" />
+                          <span>{t.auth.servantOption}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Conditional: Served Stage */}
+                    {editServiceStatus === 'served' && (
+                      <div className="p-3.5 bg-stone-50 rounded-2xl border border-gold-300 space-y-2">
+                        <label className="block text-xs font-bold text-navy-950">
+                          {t.auth.servedStageLabel}
+                        </label>
+                        <select
+                          value={editServedStageSelect}
+                          onChange={(e) => setEditServedStageSelect(e.target.value)}
+                          className="w-full text-xs p-2.5 rounded-xl border border-stone-300 bg-white font-semibold text-stone-800"
+                        >
+                          {(language === 'ar' ? SERVED_STAGE_PRESETS_AR : SERVED_STAGE_PRESETS_EN).map((preset) => (
+                            <option key={preset} value={preset}>{preset}</option>
+                          ))}
+                        </select>
+                        {(editServedStageSelect.includes('أخرى') || editServedStageSelect.includes('Other')) && (
+                          <input
+                            type="text"
+                            value={editServedStageCustom}
+                            onChange={(e) => setEditServedStageCustom(e.target.value)}
+                            placeholder={t.auth.servedStagePlaceholder}
+                            className="w-full text-xs p-2.5 rounded-xl border border-stone-300 bg-white"
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    {/* Conditional: Serving Stage */}
+                    {editServiceStatus === 'servant' && (
+                      <div className="p-3.5 bg-stone-50 rounded-2xl border border-gold-300 space-y-2">
+                        <label className="block text-xs font-bold text-navy-950">
+                          {t.auth.servingStageLabel}
+                        </label>
+                        <select
+                          value={editServingStageSelect}
+                          onChange={(e) => setEditServingStageSelect(e.target.value)}
+                          className="w-full text-xs p-2.5 rounded-xl border border-stone-300 bg-white font-semibold text-stone-800"
+                        >
+                          {(language === 'ar' ? SERVING_STAGE_PRESETS_AR : SERVING_STAGE_PRESETS_EN).map((preset) => (
+                            <option key={preset} value={preset}>{preset}</option>
+                          ))}
+                        </select>
+                        {(editServingStageSelect.includes('أخرى') || editServingStageSelect.includes('Other')) && (
+                          <input
+                            type="text"
+                            value={editServingStageCustom}
+                            onChange={(e) => setEditServingStageCustom(e.target.value)}
+                            placeholder={t.auth.servingStagePlaceholder}
+                            className="w-full text-xs p-2.5 rounded-xl border border-stone-300 bg-white"
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    {/* Other Services */}
+                    <div>
+                      <label className="block text-xs font-bold text-navy-950 mb-1">
+                        {t.auth.otherServicesLabel}
+                      </label>
+                      <div className="relative">
+                        <Sparkles className="w-4 h-4 text-stone-400 absolute start-3.5 top-3" />
+                        <input
+                          type="text"
+                          value={editOtherServices}
+                          onChange={(e) => setEditOtherServices(e.target.value)}
+                          placeholder={t.auth.otherServicesPlaceholder}
+                          className="w-full text-xs ps-10 pe-4 py-2.5 rounded-xl border border-stone-300 bg-white focus:ring-2 focus:ring-gold-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Confession Father Selection */}
+                    <div className="p-3.5 bg-gold-50/60 rounded-2xl border border-gold-300 space-y-2.5">
+                      <label className="block text-xs font-bold text-church-950 flex items-center gap-1.5">
+                        <Church className="w-4 h-4 text-gold-600" />
+                        <span>{t.auth.confessionFatherLabel}</span>
+                      </label>
+                      
+                      <select
+                        value={editConfessionFatherId}
+                        onChange={(e) => setEditConfessionFatherId(e.target.value)}
+                        className="w-full text-xs p-2.5 rounded-xl border border-stone-300 bg-white font-semibold text-navy-950"
+                      >
+                        <option value="">{language === 'ar' ? '-- بدون تحديد أب اعتراف --' : '-- No Confession Father --'}</option>
+                        {priests.map((priest) => (
+                          <option key={priest.id} value={priest.id}>
+                            {language === 'ar' ? (priest.title_ar || priest.name) : (priest.title_en || priest.name)} ({priest.email})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Confession Rhythm Settings */}
+                    <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-navy-950 flex items-center gap-1.5">
+                          <Clock className="w-4 h-4 text-gold-600" />
+                          <span>{language === 'ar' ? 'تذكير دورية الاعتراف (أيام)' : 'Confession Reminder Interval (Days)'}</span>
+                        </label>
+                        <label className="relative inline-flex items-center cursor-pointer">
                           <input
                             type="checkbox"
-                            checked={isAssigned}
-                            onChange={() => togglePriestAssignment(priest.id, editAssignedPriests, setEditAssignedPriests)}
-                            className="rounded text-purple-600"
+                            checked={editReminderEnabled}
+                            onChange={(e) => setEditReminderEnabled(e.target.checked)}
+                            className="sr-only peer"
                           />
-                          <span>{language === 'ar' ? (priest.title_ar || priest.name) : (priest.title_en || priest.name)}</span>
+                          <div className="w-9 h-5 bg-stone-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-navy-950"></div>
                         </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                      </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-100">
-                <button
-                  type="button"
-                  onClick={() => setEditingUser(null)}
-                  className="px-4 py-2 rounded-xl border border-stone-300 text-xs font-semibold text-stone-700 hover:bg-stone-50"
-                >
-                  {t.common.cancel}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl bg-gold-500 hover:bg-gold-600 text-navy-950 text-xs font-bold shadow"
-                >
-                  {isSubmitting ? t.common.saving : t.common.save}
-                </button>
+                      <div className="grid grid-cols-4 gap-2">
+                        {[15, 30, 45, 60].map((days) => (
+                          <button
+                            key={days}
+                            type="button"
+                            onClick={() => setEditReminderInterval(days)}
+                            className={`py-1.5 rounded-xl text-xs font-bold border transition ${
+                              editReminderInterval === days
+                                ? 'bg-navy-950 text-gold-400 border-navy-950'
+                                : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-100'
+                            }`}
+                          >
+                            {days} {language === 'ar' ? 'يوم' : 'days'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+
+                {/* ---------------- TAB 4: ROLE & SYSTEM PRIVILEGES ---------------- */}
+                {editActiveTab === 'privileges' && (
+                  <div className="space-y-4 animate-in fade-in">
+                    
+                    {/* Role Selection */}
+                    <div>
+                      <label className="block text-xs font-bold text-navy-950 mb-1">
+                        {t.adminFlow.userRole}
+                      </label>
+                      <select
+                        value={editRole}
+                        onChange={(e) => setEditRole(e.target.value as UserRole)}
+                        className="w-full text-xs rounded-xl border border-stone-300 p-2.5 bg-white font-semibold text-navy-950"
+                      >
+                        <option value="general">{t.roles.general}</option>
+                        <option value="secretary">{t.roles.secretary}</option>
+                        <option value="priest">{t.roles.priest}</option>
+                        <option value="admin">{t.roles.admin}</option>
+                      </select>
+                    </div>
+
+                    {/* Titles */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-navy-950 mb-1">
+                          {t.adminFlow.titleAr}
+                        </label>
+                        <input
+                          type="text"
+                          value={editTitleAr}
+                          onChange={(e) => setEditTitleAr(e.target.value)}
+                          placeholder="الاسم المعروض بالعربية"
+                          className="w-full text-xs rounded-xl border border-stone-300 p-2.5 bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-navy-950 mb-1">
+                          {t.adminFlow.titleEn}
+                        </label>
+                        <input
+                          type="text"
+                          value={editTitleEn}
+                          onChange={(e) => setEditTitleEn(e.target.value)}
+                          placeholder="Display Name in English"
+                          className="w-full text-xs rounded-xl border border-stone-300 p-2.5 bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Avatar Photo */}
+                    <div>
+                      <label className="block text-xs font-bold text-navy-950 mb-1">
+                        {t.adminFlow.photoLabel}
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={editAvatarUrl || DEFAULT_SKELETON_AVATAR}
+                          alt="Avatar preview"
+                          className="w-12 h-12 rounded-xl object-cover ring-2 ring-stone-200 shrink-0 shadow"
+                        />
+                        <div className="flex-1 space-y-2">
+                          <input
+                            type="text"
+                            value={editAvatarUrl}
+                            onChange={(e) => setEditAvatarUrl(e.target.value)}
+                            placeholder="https://..."
+                            className="w-full text-xs rounded-xl border border-stone-300 p-2 bg-white font-mono"
+                          />
+                          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold cursor-pointer transition">
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>{t.adminFlow.uploadPhoto}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleFileUpload(e, setEditAvatarUrl)}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Secretary Priests Assignment */}
+                    {editRole === 'secretary' && (
+                      <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-200 space-y-2">
+                        <label className="block text-xs font-bold text-purple-950">
+                          {t.adminFlow.assignPriestsLabel}
+                        </label>
+                        <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                          {priests.map((priest) => {
+                            const isAssigned = editAssignedPriests.includes(priest.id);
+                            return (
+                              <label
+                                key={priest.id}
+                                className="flex items-center gap-2 text-xs text-stone-700 bg-white p-2 rounded-xl border border-purple-100 cursor-pointer hover:bg-purple-50/50"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isAssigned}
+                                  onChange={() => togglePriestAssignment(priest.id, editAssignedPriests, setEditAssignedPriests)}
+                                  className="rounded text-purple-600"
+                                />
+                                <span>{language === 'ar' ? (priest.title_ar || priest.name) : (priest.title_en || priest.name)}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+                )}
+
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 sm:p-6 bg-stone-50 border-t border-stone-200 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  {editActiveTab !== 'personal' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (editActiveTab === 'privileges') setEditActiveTab('church');
+                        else if (editActiveTab === 'church') setEditActiveTab('contact');
+                        else if (editActiveTab === 'contact') setEditActiveTab('personal');
+                      }}
+                      className="px-3.5 py-2 rounded-xl border border-stone-300 bg-white text-xs font-bold text-stone-700 hover:bg-stone-100 transition"
+                    >
+                      {language === 'ar' ? 'السابق' : 'Previous'}
+                    </button>
+                  )}
+                  {editActiveTab !== 'privileges' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (editActiveTab === 'personal') setEditActiveTab('contact');
+                        else if (editActiveTab === 'contact') setEditActiveTab('church');
+                        else if (editActiveTab === 'church') setEditActiveTab('privileges');
+                      }}
+                      className="px-3.5 py-2 rounded-xl border border-stone-300 bg-white text-xs font-bold text-navy-950 hover:bg-stone-100 transition"
+                    >
+                      {language === 'ar' ? 'التالي' : 'Next'}
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingUser(null)}
+                    className="px-4 py-2 rounded-xl border border-stone-300 text-xs font-semibold text-stone-700 hover:bg-stone-100 transition"
+                  >
+                    {t.common.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-5 py-2 rounded-xl bg-navy-950 hover:bg-navy-900 text-gold-400 text-xs font-bold shadow transition disabled:opacity-50"
+                  >
+                    {isSubmitting ? (language === 'ar' ? 'جارٍ الحفظ...' : 'Saving...') : (language === 'ar' ? 'حفظ كافة التعديلات' : 'Save All Changes')}
+                  </button>
+                </div>
               </div>
 
             </form>
@@ -880,7 +1622,7 @@ export const SuperAdminUserDirectory: React.FC<SuperAdminUserDirectoryProps> = (
 
       {/* USER DETAILS MODAL */}
       <UserDetailsModal
-        user={selectedUserForDetails}
+        user={selectedUserForDetails ? (allUsers.find(u => u.id === selectedUserForDetails.id) || selectedUserForDetails) : null}
         isOpen={!!selectedUserForDetails}
         onClose={() => setSelectedUserForDetails(null)}
         onEditUser={(user) => {

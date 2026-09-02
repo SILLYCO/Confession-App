@@ -548,8 +548,8 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
               }}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-stone-100 text-navy-950 text-xs font-bold border border-stone-300 transition shadow-sm"
             >
-              <Edit className="w-3.5 h-3.5" />
-              <span>{t.adminFlow.editRoleBtn}</span>
+              <Edit className="w-3.5 h-3.5 text-gold-600" />
+              <span>{language === 'ar' ? 'تعديل كافة البيانات والصلاحيات' : 'Edit User Info & Role'}</span>
             </button>
           </div>
 

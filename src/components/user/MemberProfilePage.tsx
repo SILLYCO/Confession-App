@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { useAppStore } from '../../lib/store';
 import { 
@@ -32,7 +32,7 @@ import {
   CalendarCheck,
   ArrowRight,
   Eye,
-  EyeOff,
+  EyeOff, 
   History
 } from 'lucide-react';
 
@@ -77,6 +77,22 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
   const [reminderEnabled, setReminderEnabled] = useState<boolean>(
     currentUser.confession_reminder_enabled !== false
   );
+
+  // Sync state whenever currentUser updates
+  useEffect(() => {
+    if (!currentUser) return;
+    setPhone(currentUser.phone || '');
+    setSecondaryPhone(currentUser.secondary_phone || '');
+    setMaritalStatus(currentUser.marital_status || 'single');
+    setEducation(currentUser.education || '');
+    setProfession(currentUser.profession || '');
+    setAddress(currentUser.address || '');
+    setServingStage(currentUser.serving_stage || '');
+    setServedStage(currentUser.served_stage || '');
+    setOtherServices(currentUser.other_services || '');
+    setReminderInterval(currentUser.confession_reminder_interval_days || 30);
+    setReminderEnabled(currentUser.confession_reminder_enabled !== false);
+  }, [currentUser]);
 
   // Password Change State
   const [newPassword, setNewPassword] = useState('');
