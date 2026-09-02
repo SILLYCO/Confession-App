@@ -1447,11 +1447,15 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       let cancelledCount = 0;
       if (override.isUnavailable) {
-        const affectedBookings = bookings.filter(b => 
-          b.priest_id === priestId && 
-          b.date === override.date && 
-          b.status === 'confirmed'
-        );
+        const isFullDay = override.isFullDay !== false && !override.startTime;
+        const unavailStart = override.startTime || '00:00';
+        const unavailEnd = override.endTime || '23:59';
+
+        const affectedBookings = bookings.filter(b => {
+          if (b.priest_id !== priestId || b.date !== override.date || b.status !== 'confirmed') return false;
+          if (isFullDay) return true;
+          return (b.start_time < unavailEnd && b.end_time > unavailStart);
+        });
 
         for (const booking of affectedBookings) {
           const bookedUser = allUsers.find(u => u.id === booking.user_id);
@@ -1460,10 +1464,10 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               userId: bookedUser.id,
               type: 'booking_force_cancelled_priest_unavailable',
               recipientEmail: bookedUser.email,
-              titleEn: 'Notice: Priest Unavailable on Confession Date',
+              titleEn: 'Notice: Priest Unavailable on Confession Slot',
               titleAr: 'اعتذار: عدم تواجد قدس أبونا في موعد الاعتراف',
-              bodyEn: `Your confession appointment with ${priest?.title_en || priest?.name} on ${booking.date} at ${booking.start_time} has been cancelled due to Father's unavailability / emergency (${override.reason || 'Monastery / Parish travel'}). Please choose another date.`,
-              bodyAr: `تم إلغاء موعد الاعتراف مع ${priest?.title_ar || priest?.name} يوم ${booking.date} الساعة ${booking.start_time} لظرف طارئ / اعتذار أبونا (${override.reason || 'سفر / خلوة'}). يرجى اختيار موعد آخر.`,
+              bodyEn: `Your confession appointment with ${priest?.title_en || priest?.name} on ${booking.date} at ${booking.start_time} has been cancelled due to Father's unavailability (${override.reason || 'Pastoral duty / Emergency'}). Please choose another date or time.`,
+              bodyAr: `تم إلغاء موعد الاعتراف مع ${priest?.title_ar || priest?.name} يوم ${booking.date} الساعة ${booking.start_time} لظرف طارئ / اعتذار أبونا (${override.reason || 'ظرف طارئ'}). يرجى اختيار موعد آخر.`,
               metadata: {
                 bookingId: booking.id,
                 date: booking.date,
@@ -1475,8 +1479,10 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           cancelledCount++;
         }
 
+        const affectedBookingIds = new Set(affectedBookings.map(b => b.id));
+
         setBookings(prev => prev.map(b => {
-          if (b.priest_id === priestId && b.date === override.date && b.status === 'confirmed') {
+          if (affectedBookingIds.has(b.id)) {
             return {
               ...b,
               status: 'cancelled',
@@ -1515,17 +1521,40 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           .eq('priest_id', priestId);
 
         if (override.isUnavailable) {
-          await supabase
-            .from('bookings')
-            .update({
-              status: 'cancelled',
-              cancellation_reason: 'priest_unavailable',
-              cancelled_by: currentUser.id,
-              cancelled_at: new Date().toISOString(),
-            })
-            .eq('priest_id', priestId)
-            .eq('date', override.date)
-            .eq('status', 'confirmed');
+          const isFullDay = override.isFullDay !== false && !override.startTime;
+          if (isFullDay) {
+            await supabase
+              .from('bookings')
+              .update({
+                status: 'cancelled',
+                cancellation_reason: 'priest_unavailable',
+                cancelled_by: currentUser.id,
+                cancelled_at: new Date().toISOString(),
+              })
+              .eq('priest_id', priestId)
+              .eq('date', override.date)
+              .eq('status', 'confirmed');
+          } else if (override.startTime && override.endTime) {
+            // Cancel specific overlapping bookings
+            const affectedBookings = bookings.filter(b => 
+              b.priest_id === priestId && 
+              b.date === override.date && 
+              b.status === 'confirmed' &&
+              b.start_time < override.endTime! && 
+              b.end_time > override.startTime!
+            );
+            for (const b of affectedBookings) {
+              await supabase
+                .from('bookings')
+                .update({
+                  status: 'cancelled',
+                  cancellation_reason: 'priest_unavailable',
+                  cancelled_by: currentUser.id,
+                  cancelled_at: new Date().toISOString(),
+                })
+                .eq('id', b.id);
+            }
+          }
         }
       }
 

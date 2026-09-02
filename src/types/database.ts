@@ -23,9 +23,10 @@ export interface WeeklyScheduleItem {
 export interface ScheduleOverride {
   id: string;
   date: string; // "YYYY-MM-DD"
+  isUnavailable: boolean; // true = blackout / apology
+  isFullDay?: boolean; // true = all day, false = specific time window (defaults to true if isUnavailable && !startTime)
   startTime?: string; // "HH:MM"
   endTime?: string;   // "HH:MM"
-  isUnavailable: boolean; // true = complete blackout / emergency cancel
   reason?: string; // e.g. "Travel to Monastery", "Feast Liturgy", "Emergency"
   avg_confession_minutes?: number; // Optional custom duration for this override date
 }

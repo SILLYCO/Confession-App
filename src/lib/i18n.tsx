@@ -364,8 +364,22 @@ export interface Translations {
     addOverrideBtn: string;
     overrideDate: string;
     isUnavailableCheckbox: string;
+    unavailabilityType: string;
+    fullDayBlackout: string;
+    partialDayBlackout: string;
+    unavailStartTime: string;
+    unavailEndTime: string;
+    partialBlackoutNotice: string;
     overrideReason: string;
     blackoutDateNotice: string;
+    overrideImpactTitle: string;
+    overrideImpactDesc: string;
+    affectedAppointmentsTitle: string;
+    affectedAppointmentsDesc: string;
+    preservedAppointmentsTitle: string;
+    preservedAppointmentsDesc: string;
+    noAffectedAppointments: string;
+    confirmBlackoutBtn: string;
     upcomingConfessions: string;
     noAppointmentsScheduled: string;
     totalSlotsToday: string;
@@ -808,9 +822,23 @@ const translations: Record<Language, Translations> = {
       scheduleOverridesDesc: "Add special extra availability or mark emergency blackout dates (e.g. monastery retreat, feasts, travel).",
       addOverrideBtn: "Add Date Override",
       overrideDate: "Override Date",
-      isUnavailableCheckbox: "Mark Father Unavailable (Emergency / Travel Blackout)",
+      isUnavailableCheckbox: "Mark Father Unavailable (Emergency / Blackout)",
+      unavailabilityType: "Blackout Duration Scope",
+      fullDayBlackout: "All Day (Full 24-Hour Blackout)",
+      partialDayBlackout: "Specific Time Window (Partial Blackout)",
+      unavailStartTime: "Unavailable From",
+      unavailEndTime: "Unavailable To",
+      partialBlackoutNotice: "Only bookings overlapping this unavailable window will be cancelled. Bookings outside this window remain active and confirmed.",
       overrideReason: "Reason / Note (optional)",
-      blackoutDateNotice: "Marking a date unavailable will auto-cancel any existing bookings on that day and send email notices.",
+      blackoutDateNotice: "Marking an entire date unavailable will cancel all bookings on that day and send email notices.",
+      overrideImpactTitle: "Confirm Blackout & Impact Analysis",
+      overrideImpactDesc: "Review affected appointments and members before confirming this unavailability window.",
+      affectedAppointmentsTitle: "Cancelled Affected Appointments",
+      affectedAppointmentsDesc: "These appointments will be automatically cancelled with cancellation notices sent:",
+      preservedAppointmentsTitle: "Preserved Active Appointments",
+      preservedAppointmentsDesc: "These appointments fall outside the unavailable window and remain confirmed:",
+      noAffectedAppointments: "No existing appointments are affected on this date. No bookings will be cancelled.",
+      confirmBlackoutBtn: "Confirm & Apply Blackout",
       upcomingConfessions: "My Scheduled Confession Appointments",
       noAppointmentsScheduled: "No upcoming confessions scheduled yet.",
       totalSlotsToday: "Slots Today",
@@ -1252,8 +1280,22 @@ const translations: Record<Language, Translations> = {
       addOverrideBtn: "إضافة استثناء لتاريخ معين",
       overrideDate: "تاريخ الاستثناء",
       isUnavailableCheckbox: "تسجيل عدم تواجد أبونا (اعتذار طارئ / إجازة)",
+      unavailabilityType: "نطاق وقت عدم التواجد",
+      fullDayBlackout: "يوم كامل (طوال الـ 24 ساعة)",
+      partialDayBlackout: "فترة / ساعات محددة فقط",
+      unavailStartTime: "غير متاح من الساعة",
+      unavailEndTime: "غير متاح إلى الساعة",
+      partialBlackoutNotice: "سيتم إلغاء الحجوزات المتعارضة مع هذه الفترة فقط، بينما تبقى باقي مواعيد اليوم قائمة ومؤكدة كما هي.",
       overrideReason: "السبب / ملاحظة (اختياري)",
-      blackoutDateNotice: "تسجيل الاعتذار عن تاريخ معين سيقوم تلقائياً بإلغاء أي حجوزات قائمة في ذلك اليوم وإرسال إيميلات تنبيه لأصحابها.",
+      blackoutDateNotice: "تسجيل الاعتذار عن يوم كامل سيقوم بإلغاء جميع حجوزات اليوم وإرسال إيميلات تنبيه لأصحابها.",
+      overrideImpactTitle: "تأكيد تسجيل الاعتذار وتحليل التأثير",
+      overrideImpactDesc: "مراجعة الحجوزات والمواعيد المتأثرة وأسماء المخدومين قبل الحفظ والتطبيق.",
+      affectedAppointmentsTitle: "الحجوزات المتأثرة التي سيتم إلغاؤها",
+      affectedAppointmentsDesc: "سيتم إلغاء هذه المواعيد تلقائياً وإرسال إيميلات اعتذار لأصحابها:",
+      preservedAppointmentsTitle: "المواعيد القائمة المحفوظة دون إلغاء",
+      preservedAppointmentsDesc: "هذه المواعيد تقع خارج فترة الاعتذار وستظل مؤكدة بنجاح:",
+      noAffectedAppointments: "لا توجد أي حجوزات قائمة متأثرة في هذا التاريخ. لن يتم إلغاء أي مواعيد.",
+      confirmBlackoutBtn: "تأكيد تسجيل الاعتذار والإلغاء",
       upcomingConfessions: "مواعيد اعترافات أبونا القادمة",
       noAppointmentsScheduled: "لا توجد مواعيد اعترافات مجدولة حتى الآن.",
       totalSlotsToday: "مواعيد اليوم",
