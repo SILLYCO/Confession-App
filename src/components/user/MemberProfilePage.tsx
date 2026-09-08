@@ -580,11 +580,13 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
 
               {assignedFather ? (
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 bg-white p-4 rounded-2xl border border-gold-200 shadow-sm">
-                  <img
-                    src={assignedFather.avatar_url || DEFAULT_SKELETON_AVATAR}
-                    alt={assignedFather.name}
-                    className="w-16 h-16 rounded-2xl object-cover ring-2 ring-gold-400 shrink-0"
-                  />
+                  <div className="w-16 h-16 rounded-2xl ring-2 ring-gold-400 shrink-0 overflow-hidden flex items-center justify-center">
+                    <img
+                      src={assignedFather.avatar_url || DEFAULT_SKELETON_AVATAR}
+                      alt={assignedFather.name}
+                      className="w-full h-full object-cover object-center"
+                    />
+                  </div>
                   <div className="min-w-0 flex-1 text-center sm:text-start space-y-1">
                     <h4 className="font-bold text-sm text-navy-950 font-serif">
                       {language === 'ar' ? (assignedFather.title_ar || assignedFather.name) : (assignedFather.title_en || assignedFather.name)}

@@ -284,11 +284,13 @@ export const SuperAdminMonitoringDashboard: React.FC<SuperAdminMonitoringDashboa
                 <div key={priest.id} className="p-5 sm:p-6 hover:bg-stone-50/70 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   
                   <div className="flex items-center gap-3.5">
-                    <img
-                      src={priest.avatar_url || DEFAULT_SKELETON_AVATAR}
-                      alt={priest.name}
-                      className="w-13 h-13 rounded-2xl object-cover ring-2 ring-gold-400/80 shadow bg-stone-100 shrink-0"
-                    />
+                    <div className="w-14 h-14 rounded-2xl ring-2 ring-gold-400/80 shadow bg-stone-100 overflow-hidden shrink-0 flex items-center justify-center">
+                      <img
+                        src={priest.avatar_url || DEFAULT_SKELETON_AVATAR}
+                        alt={priest.name}
+                        className="w-full h-full object-cover object-center"
+                      />
+                    </div>
                     <div className="space-y-1">
                       <h4 className="text-sm font-bold text-navy-950">
                         {language === 'ar' ? (priest.title_ar || priest.name) : (priest.title_en || priest.name)}
