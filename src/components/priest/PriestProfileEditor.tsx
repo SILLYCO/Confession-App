@@ -15,10 +15,12 @@ import {
   Mail,
   Clock,
   BookOpen,
-  Trash2
+  Trash2,
+  Crop
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { DEFAULT_SKELETON_AVATAR } from '../../types/database';
+import { PhotoCropModal } from '../common/PhotoCropModal';
 
 export const PriestProfileEditor: React.FC = () => {
   const { t, language } = useTranslation();
@@ -40,6 +42,10 @@ export const PriestProfileEditor: React.FC = () => {
 
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Photo Crop Modal State
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string>('');
 
   useEffect(() => {
     if (currentUser) {
@@ -63,8 +69,8 @@ export const PriestProfileEditor: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 3 * 1024 * 1024) {
-      alert('Photo file size should be under 3MB');
+    if (file.size > 8 * 1024 * 1024) {
+      alert(language === 'ar' ? 'حجم الملف يتجاوز 8 ميجابايت' : 'Photo file size should be under 8MB');
       return;
     }
 
@@ -72,10 +78,12 @@ export const PriestProfileEditor: React.FC = () => {
     reader.onload = (uploadEvent) => {
       const result = uploadEvent.target?.result as string;
       if (result) {
-        setAvatarUrl(result);
+        setImageToCrop(result);
+        setCropModalOpen(true);
       }
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -189,14 +197,28 @@ export const PriestProfileEditor: React.FC = () => {
               </label>
 
               {avatarUrl && avatarUrl !== DEFAULT_SKELETON_AVATAR && (
-                <button
-                  type="button"
-                  onClick={() => setAvatarUrl(DEFAULT_SKELETON_AVATAR)}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>{language === 'ar' ? 'إزالة الصورة واستخدام الصورة الافتراضية' : 'Use Default Avatar'}</span>
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageToCrop(avatarUrl);
+                      setCropModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gold-300 bg-gold-50 hover:bg-gold-100 text-church-950 text-xs font-bold transition shadow-sm"
+                  >
+                    <Crop className="w-3.5 h-3.5 text-gold-600" />
+                    <span>{t.adminFlow.adjustPhoto}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAvatarUrl(DEFAULT_SKELETON_AVATAR)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{language === 'ar' ? 'إزالة الصورة واستخدام الصورة الافتراضية' : 'Use Default Avatar'}</span>
+                  </button>
+                </>
               )}
 
               <span className="text-[11px] text-stone-500">Supports JPG, PNG, WebP up to 3MB</span>
@@ -414,6 +436,14 @@ export const PriestProfileEditor: React.FC = () => {
           <span>{isSaving ? t.common.saving : t.priestFlow.saveProfileBtn}</span>
         </button>
       </div>
+
+      {/* Photo Crop Adjustment Modal */}
+      <PhotoCropModal
+        isOpen={cropModalOpen}
+        imageSrc={imageToCrop}
+        onClose={() => setCropModalOpen(false)}
+        onCropComplete={(cropped) => setAvatarUrl(cropped)}
+      />
 
     </form>
   );

@@ -16,8 +16,10 @@ import {
   Calendar,
   Sparkles,
   Eye,
-  EyeOff
+  EyeOff,
+  Crop
 } from 'lucide-react';
+import { PhotoCropModal } from '../common/PhotoCropModal';
 
 interface CreatePriestWizardModalProps {
   isOpen: boolean;
@@ -64,6 +66,10 @@ export const CreatePriestWizardModal: React.FC<CreatePriestWizardModalProps> = (
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Photo Crop Modal State
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string>('');
+
   if (!isOpen) return null;
 
   const generateRandomPassword = () => {
@@ -78,18 +84,20 @@ export const CreatePriestWizardModal: React.FC<CreatePriestWizardModalProps> = (
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      alert(language === 'ar' ? 'أقصى حجم للملف هو 3 ميجابايت' : 'Max file size is 3MB');
+    if (file.size > 8 * 1024 * 1024) {
+      alert(language === 'ar' ? 'أقصى حجم للملف هو 8 ميجابايت' : 'Max file size is 8MB');
       return;
     }
     const reader = new FileReader();
     reader.onload = (uploadEvent) => {
       const result = uploadEvent.target?.result as string;
       if (result) {
-        setAvatarUrl(result);
+        setImageToCrop(result);
+        setCropModalOpen(true);
       }
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleAddScheduleWindow = () => {
@@ -351,22 +359,40 @@ export const CreatePriestWizardModal: React.FC<CreatePriestWizardModalProps> = (
                   {t.adminFlow.photoLabel}
                 </label>
                 <div className="flex items-center gap-4">
-                  <img
-                    src={avatarUrl || DEFAULT_SKELETON_AVATAR}
-                    alt="Preview"
-                    className="w-16 h-16 rounded-2xl object-cover ring-2 ring-gold-400 shadow bg-stone-100"
-                  />
+                  <div className="w-16 h-16 rounded-2xl ring-2 ring-gold-400 shadow bg-stone-100 overflow-hidden shrink-0 flex items-center justify-center">
+                    <img
+                      src={avatarUrl || DEFAULT_SKELETON_AVATAR}
+                      alt="Preview"
+                      className="w-full h-full object-cover object-center"
+                    />
+                  </div>
                   <div className="flex-1 space-y-2">
-                    <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold cursor-pointer transition border border-stone-300">
-                      <Upload className="w-4 h-4" />
-                      <span>{t.adminFlow.uploadPhoto}</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
-                    </label>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold cursor-pointer transition border border-stone-300 shadow-sm">
+                        <Upload className="w-4 h-4" />
+                        <span>{t.adminFlow.uploadPhoto}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+
+                      {avatarUrl && avatarUrl !== DEFAULT_SKELETON_AVATAR && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImageToCrop(avatarUrl);
+                            setCropModalOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gold-300 bg-gold-50 hover:bg-gold-100 text-church-950 text-xs font-bold transition shadow-sm"
+                        >
+                          <Crop className="w-3.5 h-3.5 text-gold-600" />
+                          <span>{t.adminFlow.adjustPhoto}</span>
+                        </button>
+                      )}
+                    </div>
                     <input
                       type="url"
                       value={avatarUrl}
@@ -602,6 +628,15 @@ export const CreatePriestWizardModal: React.FC<CreatePriestWizardModalProps> = (
         </form>
 
       </div>
+
+      {/* Photo Crop Adjustment Modal */}
+      <PhotoCropModal
+        isOpen={cropModalOpen}
+        imageSrc={imageToCrop}
+        onClose={() => setCropModalOpen(false)}
+        onCropComplete={(cropped) => setAvatarUrl(cropped)}
+      />
+
     </div>
   );
 };

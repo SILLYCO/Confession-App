@@ -101,11 +101,13 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
         {/* Header Banner */}
         <div className="bg-gradient-to-r from-navy-950 via-slate-900 to-navy-900 text-white p-6 flex items-start justify-between border-b border-gold-500/30">
           <div className="flex items-center gap-4">
-            <img
-              src={user.avatar_url || DEFAULT_SKELETON_AVATAR}
-              alt={user.name}
-              className="w-16 h-16 rounded-2xl object-cover ring-2 ring-gold-400 bg-stone-800 shadow shrink-0"
-            />
+            <div className="w-16 h-16 rounded-2xl ring-2 ring-gold-400 bg-stone-800 shadow shrink-0 overflow-hidden flex items-center justify-center">
+              <img
+                src={user.avatar_url || DEFAULT_SKELETON_AVATAR}
+                alt={user.name}
+                className="w-full h-full object-cover object-center"
+              />
+            </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <Badge role={user.role} size="sm" />
@@ -326,11 +328,13 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
 
                         {assignedFather ? (
                           <div className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-gold-200 shadow-sm">
-                            <img
-                              src={assignedFather.avatar_url || DEFAULT_SKELETON_AVATAR}
-                              alt={assignedFather.name}
-                              className="w-10 h-10 rounded-xl object-cover ring-2 ring-gold-400 shrink-0"
-                            />
+                            <div className="w-10 h-10 rounded-xl ring-2 ring-gold-400 shrink-0 overflow-hidden flex items-center justify-center">
+                              <img
+                                src={assignedFather.avatar_url || DEFAULT_SKELETON_AVATAR}
+                                alt={assignedFather.name}
+                                className="w-full h-full object-cover object-center"
+                              />
+                            </div>
                             <div className="min-w-0 flex-1">
                               <h5 className="font-bold text-xs text-navy-950 truncate">
                                 {language === 'ar' ? (assignedFather.title_ar || assignedFather.name) : (assignedFather.title_en || assignedFather.name)}
@@ -452,11 +456,13 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {assignedPriestsList.map((priest) => (
                       <div key={priest.id} className="p-3 bg-purple-50/50 border border-purple-200/80 rounded-2xl flex items-center gap-3">
-                        <img
-                          src={priest.avatar_url || DEFAULT_SKELETON_AVATAR}
-                          alt={priest.name}
-                          className="w-10 h-10 rounded-xl object-cover ring-2 ring-purple-300 shrink-0"
-                        />
+                        <div className="w-10 h-10 rounded-xl ring-2 ring-purple-300 shrink-0 overflow-hidden flex items-center justify-center">
+                          <img
+                            src={priest.avatar_url || DEFAULT_SKELETON_AVATAR}
+                            alt={priest.name}
+                            className="w-full h-full object-cover object-center"
+                          />
+                        </div>
                         <div className="min-w-0">
                           <p className="font-bold text-xs text-navy-950 truncate">
                             {language === 'ar' ? (priest.title_ar || priest.name) : (priest.title_en || priest.name)}
@@ -744,11 +750,13 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
                         : 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
                     }`}
                   >
-                    <img
-                      src={priest.avatar_url || DEFAULT_SKELETON_AVATAR}
-                      alt={priest.name}
-                      className="w-10 h-10 rounded-xl object-cover ring-2 ring-gold-400/40 shrink-0"
-                    />
+                    <div className="w-10 h-10 rounded-xl ring-2 ring-gold-400/40 shrink-0 overflow-hidden flex items-center justify-center">
+                      <img
+                        src={priest.avatar_url || DEFAULT_SKELETON_AVATAR}
+                        alt={priest.name}
+                        className="w-full h-full object-cover object-center"
+                      />
+                    </div>
                     <div className="min-w-0 flex-1">
                       <p className={`font-bold text-xs truncate ${isSelected ? 'text-gold-400' : 'text-navy-950'}`}>
                         {language === 'ar' ? (priest.title_ar || priest.name) : (priest.title_en || priest.name)}

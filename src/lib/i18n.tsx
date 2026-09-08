@@ -214,6 +214,13 @@ export interface Translations {
     titleAr: string;
     photoLabel: string;
     uploadPhoto: string;
+    adjustPhoto: string;
+    cropModalTitle: string;
+    cropModalSubtitle: string;
+    zoomLabel: string;
+    rotateLabel: string;
+    resetLabel: string;
+    applyCropBtn: string;
     orEnterImageUrl: string;
     presetPhotos: string;
     assignPriestsLabel: string;
@@ -673,6 +680,13 @@ const translations: Record<Language, Translations> = {
       titleAr: "Arabic Title / Label",
       photoLabel: "Profile Photo (Avatar)",
       uploadPhoto: "Upload Photo File",
+      adjustPhoto: "Adjust & Crop",
+      cropModalTitle: "Adjust & Crop Photo",
+      cropModalSubtitle: "Drag to reposition, use the slider to zoom, or rotate to fit perfectly inside the frame.",
+      zoomLabel: "Zoom",
+      rotateLabel: "Rotate 90°",
+      resetLabel: "Reset",
+      applyCropBtn: "Apply & Save Photo",
       orEnterImageUrl: "or enter Image URL",
       presetPhotos: "Or pick a preset portrait",
       assignPriestsLabel: "Assigned Priests (for Secretary)",
@@ -1130,6 +1144,13 @@ const translations: Record<Language, Translations> = {
       titleAr: "المسمى بالعربية",
       photoLabel: "صورة الحساب (الأفاتار)",
       uploadPhoto: "رفع ملف صورة",
+      adjustPhoto: "تعديل وقص",
+      cropModalTitle: "تعديل وقص الصورة الشخصية",
+      cropModalSubtitle: "اسحب الصورة لتحديد الموضع، واستخدم شريط التكبير أو التدوير لضبط الوجه داخل الإطار.",
+      zoomLabel: "تكبير / تصغير",
+      rotateLabel: "تدوير 90°",
+      resetLabel: "إعادة ضبط",
+      applyCropBtn: "اعتماد وحفظ الصورة",
       orEnterImageUrl: "أو إدخال رابط الصورة (URL)",
       presetPhotos: "أو اختر صورة جاهزة من المكتبة",
       assignPriestsLabel: "الآباء الكهنة المسندين (للسكرتارية)",

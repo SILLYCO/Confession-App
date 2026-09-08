@@ -34,8 +34,10 @@ import {
   Briefcase,
   GraduationCap,
   Award,
-  Clock
+  Clock,
+  Crop
 } from 'lucide-react';
+import { PhotoCropModal } from '../common/PhotoCropModal';
 
 const SERVED_STAGE_PRESETS_AR = [
   'حضانة',
@@ -266,21 +268,29 @@ export const SuperAdminUserDirectory: React.FC<SuperAdminUserDirectoryProps> = (
     setEditReminderEnabled(liveUser.confession_reminder_enabled !== false);
   };
 
+  // Photo Crop Modal State
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string>('');
+  const [cropTargetSetter, setCropTargetSetter] = useState<((url: string) => void) | null>(null);
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (url: string) => void) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      alert(language === 'ar' ? 'حجم الملف يتجاوز 3 ميجابايت' : 'Photo file size should be under 3MB');
+    if (file.size > 8 * 1024 * 1024) {
+      alert(language === 'ar' ? 'حجم الملف يتجاوز 8 ميجابايت' : 'Photo file size should be under 8MB');
       return;
     }
     const reader = new FileReader();
     reader.onload = (uploadEvent) => {
       const result = uploadEvent.target?.result as string;
       if (result) {
-        setter(result);
+        setImageToCrop(result);
+        setCropTargetSetter(() => setter);
+        setCropModalOpen(true);
       }
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
@@ -558,11 +568,13 @@ export const SuperAdminUserDirectory: React.FC<SuperAdminUserDirectoryProps> = (
                     {/* User Profile */}
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
-                        <img
-                          src={user.avatar_url || DEFAULT_SKELETON_AVATAR}
-                          alt={user.name}
-                          className="w-10 h-10 rounded-2xl object-cover ring-2 ring-stone-200 group-hover:ring-gold-400 bg-stone-100 shrink-0 transition"
-                        />
+                        <div className="w-10 h-10 rounded-2xl ring-2 ring-stone-200 group-hover:ring-gold-400 bg-stone-100 shrink-0 overflow-hidden flex items-center justify-center transition">
+                          <img
+                            src={user.avatar_url || DEFAULT_SKELETON_AVATAR}
+                            alt={user.name}
+                            className="w-full h-full object-cover object-center"
+                          />
+                        </div>
                         <div className="min-w-0">
                           <p className="font-bold text-navy-950 text-xs group-hover:text-church-900 transition">
                             {language === 'ar' ? (user.title_ar || user.name) : (user.title_en || user.name)}
@@ -912,11 +924,13 @@ export const SuperAdminUserDirectory: React.FC<SuperAdminUserDirectoryProps> = (
             {/* Header */}
             <div className="bg-gradient-to-r from-navy-950 via-slate-900 to-navy-900 text-white p-6 flex items-start justify-between border-b border-gold-500/30">
               <div className="flex items-center gap-4">
-                <img
-                  src={editAvatarUrl || editingUser.avatar_url || DEFAULT_SKELETON_AVATAR}
-                  alt={editingUser.name}
-                  className="w-14 h-14 rounded-2xl object-cover ring-2 ring-gold-400 bg-stone-800 shrink-0 shadow"
-                />
+                <div className="w-14 h-14 rounded-2xl ring-2 ring-gold-400 bg-stone-800 shrink-0 shadow overflow-hidden flex items-center justify-center">
+                  <img
+                    src={editAvatarUrl || editingUser.avatar_url || DEFAULT_SKELETON_AVATAR}
+                    alt={editingUser.name}
+                    className="w-full h-full object-cover object-center"
+                  />
+                </div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <Badge role={editRole} size="sm" />
@@ -1483,11 +1497,13 @@ export const SuperAdminUserDirectory: React.FC<SuperAdminUserDirectoryProps> = (
                         {t.adminFlow.photoLabel}
                       </label>
                       <div className="flex items-center gap-3">
-                        <img
-                          src={editAvatarUrl || DEFAULT_SKELETON_AVATAR}
-                          alt="Avatar preview"
-                          className="w-12 h-12 rounded-xl object-cover ring-2 ring-stone-200 shrink-0 shadow"
-                        />
+                        <div className="w-12 h-12 rounded-xl ring-2 ring-stone-200 shrink-0 shadow overflow-hidden flex items-center justify-center">
+                          <img
+                            src={editAvatarUrl || DEFAULT_SKELETON_AVATAR}
+                            alt="Avatar preview"
+                            className="w-full h-full object-cover object-center"
+                          />
+                        </div>
                         <div className="flex-1 space-y-2">
                           <input
                             type="text"
@@ -1496,16 +1512,33 @@ export const SuperAdminUserDirectory: React.FC<SuperAdminUserDirectoryProps> = (
                             placeholder="https://..."
                             className="w-full text-xs rounded-xl border border-stone-300 p-2 bg-white font-mono"
                           />
-                          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold cursor-pointer transition">
-                            <Upload className="w-3.5 h-3.5" />
-                            <span>{t.adminFlow.uploadPhoto}</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => handleFileUpload(e, setEditAvatarUrl)}
-                              className="hidden"
-                            />
-                          </label>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold cursor-pointer transition border border-stone-200 shadow-sm">
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>{t.adminFlow.uploadPhoto}</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleFileUpload(e, setEditAvatarUrl)}
+                                className="hidden"
+                              />
+                            </label>
+
+                            {editAvatarUrl && editAvatarUrl !== DEFAULT_SKELETON_AVATAR && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setImageToCrop(editAvatarUrl);
+                                  setCropTargetSetter(() => setEditAvatarUrl);
+                                  setCropModalOpen(true);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gold-300 bg-gold-50 hover:bg-gold-100 text-church-950 text-xs font-semibold transition shadow-sm"
+                              >
+                                <Crop className="w-3.5 h-3.5 text-gold-600" />
+                                <span>{t.adminFlow.adjustPhoto}</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1642,6 +1675,18 @@ export const SuperAdminUserDirectory: React.FC<SuperAdminUserDirectoryProps> = (
           }}
         />
       </ErrorBoundary>
+
+      {/* Photo Crop Adjustment Modal */}
+      <PhotoCropModal
+        isOpen={cropModalOpen}
+        imageSrc={imageToCrop}
+        onClose={() => setCropModalOpen(false)}
+        onCropComplete={(cropped) => {
+          if (cropTargetSetter) {
+            cropTargetSetter(cropped);
+          }
+        }}
+      />
 
     </div>
   );

@@ -52,6 +52,10 @@ export default {
         arabic: ['Cairo', 'Amiri', 'system-ui', 'sans-serif'],
         serif: ['Cinzel', 'Amiri', 'Georgia', 'serif'],
       },
+      spacing: {
+        '13': '3.25rem',
+        '15': '3.75rem',
+      },
     },
   },
   plugins: [],
