@@ -181,6 +181,8 @@ const addDeletedUserId = (id: string) => {
 // Blocklist constants to purge dummy congregation accounts and test announcements
 export const DUMMY_ACCOUNT_EMAILS = new Set(['peter@example.com', 'mary@example.com', 'david@example.com']);
 export const DUMMY_ACCOUNT_IDS = new Set([
+  '11111111-1111-1111-1111-111111111111',
+  '22222222-2222-2222-2222-222222222222',
   '44444444-4444-4444-4444-444444444444',
   '55555555-5555-5555-5555-555555555555',
   '66666666-6666-6666-6666-666666666666',
@@ -249,6 +251,16 @@ const sanitizeStoredData = () => {
         localStorage.setItem(LOCAL_STORAGE_KEY_ANNOUNCEMENTS, JSON.stringify(cleaned));
       }
     }
+
+    // 6. Sanitize priest profiles (remove dummy priest profiles)
+    const savedProfiles = localStorage.getItem(LOCAL_STORAGE_KEY_PROFILES);
+    if (savedProfiles) {
+      const parsed = JSON.parse(savedProfiles);
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed.filter((p: any) => !DUMMY_ACCOUNT_IDS.has(p.priest_id));
+        localStorage.setItem(LOCAL_STORAGE_KEY_PROFILES, JSON.stringify(cleaned));
+      }
+    }
   } catch (e) {
     console.warn('LocalStorage sanitizer error:', e);
   }
@@ -284,10 +296,6 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 if (val !== undefined && val !== null && val !== '') {
                   (merged as any)[key] = val;
                 }
-              }
-              if (merged.id === '11111111-1111-1111-1111-111111111111' || merged.name === 'Fr. Bishoy Ahdy') {
-                merged.title_ar = 'القس بيشوي عهدي';
-                merged.title_en = 'Fr. Bishoy Ahdy';
               }
               return merged;
             });
@@ -329,14 +337,13 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           const cleaned = parsed.filter((p: PriestProfile) => 
-            p.priest_id !== '22222222-2222-2222-2222-222222222222'
+            !DUMMY_ACCOUNT_IDS.has(p.priest_id)
           );
-          if (cleaned.length === 0) return MOCK_PRIEST_PROFILES;
-          return cleaned;
+          if (cleaned.length > 0) return cleaned;
         }
       } catch {}
     }
-    return MOCK_PRIEST_PROFILES;
+    return [];
   });
 
   const [bookings, setBookings] = useState<Booking[]>(() => {
@@ -494,6 +501,8 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             ) continue;
             const remoteU = updatedMap.get(localU.id);
             if (!remoteU) {
+              // If remote priests were fetched from Supabase, do NOT preserve local phantom priests
+              if (localU.role === 'priest') continue;
               updatedMap.set(localU.id, localU);
             } else if (localU.updated_at && (!remoteU.updated_at || new Date(localU.updated_at) >= new Date(remoteU.updated_at))) {
               updatedMap.set(localU.id, { ...remoteU, ...localU });
@@ -513,7 +522,11 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         });
       }
       if (profilesData) {
-        setPriestProfiles(profilesData);
+        const cleanProfiles = profilesData.filter((p: PriestProfile) => !DUMMY_ACCOUNT_IDS.has(p.priest_id));
+        setPriestProfiles(cleanProfiles);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY_PROFILES, JSON.stringify(cleanProfiles));
+        } catch {}
       }
       if (bookingsData) {
         const cleanBookings = bookingsData.filter((b: Booking) => 
@@ -805,9 +818,7 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const isLoggedIn = Boolean(currentUser);
 
   const priests = useMemo(() => {
-    const list = allUsers.filter(u => u.role === 'priest');
-    if (list.length > 0) return list;
-    return MOCK_USERS.filter(u => u.role === 'priest');
+    return allUsers.filter(u => u.role === 'priest' && !DUMMY_ACCOUNT_IDS.has(u.id));
   }, [allUsers]);
   const secretaries = useMemo(() => allUsers.filter(u => u.role === 'secretary'), [allUsers]);
   const generalUsers = useMemo(() => allUsers.filter(u => u.role === 'general'), [allUsers]);
