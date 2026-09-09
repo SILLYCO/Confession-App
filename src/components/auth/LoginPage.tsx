@@ -71,7 +71,7 @@ const SERVING_STAGE_PRESETS_EN = [
 
 export const LoginPage: React.FC = () => {
   const { t, language } = useTranslation();
-  const { signIn, signUp, resetPassword, priests } = useAppStore();
+  const { signIn, signUp, resetPassword, priests, priestProfiles } = useAppStore();
 
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   
@@ -817,48 +817,82 @@ export const LoginPage: React.FC = () => {
               )}
 
               {/* Confession Father Selection (Mandatory) */}
-              <div className="space-y-2 pt-2 border-t border-stone-200/80">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-navy-950">
-                    {t.auth.confessionFatherLabel} <span className="text-rose-500">*</span>
-                  </label>
-                  <span className="text-[10px] text-church-800 font-bold bg-gold-100/80 px-2 py-0.5 rounded-full border border-gold-300">
+              <div className="space-y-3 pt-3 border-t border-stone-200/80">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <div>
+                    <label className="block text-xs sm:text-sm font-bold text-navy-950">
+                      {t.auth.confessionFatherLabel} <span className="text-rose-500">*</span>
+                    </label>
+                    <p className="text-[11px] text-stone-500">
+                      {language === 'ar' 
+                        ? 'اختر أب اعترافك — يمكنك التعرف عليه بسهولة من خلال صورته الشخصية أو اسمه'
+                        : 'Select your father of confession — recognize him easily by his photo or name'}
+                    </p>
+                  </div>
+                  <span className="text-[10px] text-church-800 font-bold bg-gold-100/80 px-2.5 py-1 rounded-full border border-gold-300 shrink-0 self-start sm:self-auto">
                     {language === 'ar' ? 'تحديد دائم' : 'Permanent Assignment'}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   {availablePriests.map((priest) => {
                     const isSelected = signUpConfessionFatherId === priest.id;
+                    const profile = priestProfiles?.find(p => p.priest_id === priest.id);
+                    const churchTitle = language === 'ar' 
+                      ? (profile?.church_name_ar || t.churchName) 
+                      : (profile?.church_name_en || t.churchName);
+
                     return (
                       <button
                         key={priest.id}
                         type="button"
                         onClick={() => setSignUpConfessionFatherId(priest.id)}
-                        className={`p-3 rounded-2xl border text-start transition flex items-center gap-3 ${
+                        className={`p-3.5 sm:p-4 rounded-3xl border-2 text-start transition-all flex items-center gap-4 ${
                           isSelected
-                            ? 'bg-gradient-to-r from-navy-950 to-navy-900 text-white border-navy-950 ring-2 ring-gold-400 shadow-md'
-                            : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50'
+                            ? 'bg-gradient-to-r from-navy-950 to-navy-900 text-white border-navy-950 ring-2 ring-gold-400 shadow-lg scale-[1.01]'
+                            : 'bg-white border-stone-200 text-stone-700 hover:border-gold-400 hover:bg-gold-50/20 hover:shadow-md'
                         }`}
                       >
-                        <img
-                          src={priest.avatar_url || DEFAULT_SKELETON_AVATAR}
-                          alt={priest.name}
-                          className={`w-10 h-10 rounded-xl object-cover ring-2 shrink-0 ${
-                            isSelected ? 'ring-gold-400' : 'ring-stone-200'
-                          }`}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className={`font-bold text-xs truncate ${isSelected ? 'text-gold-400' : 'text-navy-950'}`}>
-                            {language === 'ar' ? (priest.title_ar || priest.name) : (priest.title_en || priest.name)}
-                          </p>
-                          <p className={`text-[10px] truncate ${isSelected ? 'text-stone-300' : 'text-stone-500'}`}>
-                            {t.churchName}
-                          </p>
+                        {/* High-visibility large avatar with aspect-ratio lock */}
+                        <div className={`shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden ring-2 shadow-md bg-stone-100 flex items-center justify-center transition-transform ${
+                          isSelected ? 'ring-gold-400' : 'ring-stone-200'
+                        }`}>
+                          <img
+                            src={priest.avatar_url || DEFAULT_SKELETON_AVATAR}
+                            alt={priest.name}
+                            className="w-full h-full object-cover object-center"
+                          />
                         </div>
-                        {isSelected && (
-                          <CheckCircle2 className="w-4 h-4 text-gold-400 shrink-0 ms-auto" />
-                        )}
+
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <p className={`font-bold font-serif text-sm sm:text-base leading-snug line-clamp-2 ${
+                              isSelected ? 'text-gold-400' : 'text-navy-950'
+                            }`}>
+                              {language === 'ar' ? (priest.title_ar || priest.name) : (priest.title_en || priest.name)}
+                            </p>
+                            {isSelected && (
+                              <div className="shrink-0 p-1 rounded-full bg-gold-500 text-navy-950 shadow-sm">
+                                <CheckCircle2 className="w-4 h-4" />
+                              </div>
+                            )}
+                          </div>
+
+                          <p className={`text-xs line-clamp-1 ${isSelected ? 'text-stone-300' : 'text-church-700 font-medium'}`}>
+                            {churchTitle}
+                          </p>
+
+                          {isSelected ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-gold-300 bg-white/10 px-2 py-0.5 rounded-full mt-1">
+                              <span>✓</span>
+                              <span>{language === 'ar' ? 'أب اعترافك المختار' : 'Selected Father'}</span>
+                            </span>
+                          ) : (
+                            <span className="inline-block text-[10px] text-stone-400 font-medium mt-1">
+                              {language === 'ar' ? 'انقر للاختيار' : 'Click to select'}
+                            </span>
+                          )}
+                        </div>
                       </button>
                     );
                   })}

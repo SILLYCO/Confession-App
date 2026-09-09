@@ -1,4 +1,4 @@
-import { Slot, SlotStatus, WeeklyScheduleItem, ScheduleOverride, Booking } from '../types/database';
+import { Slot, SlotStatus, WeeklyScheduleItem, ScheduleOverride, Booking, PriestProfile } from '../types/database';
 import { format, addDays, parseISO, isAfter, isBefore } from 'date-fns';
 
 /**
@@ -227,3 +227,62 @@ export function isSlotInPast(dateStr: string, startTimeStr: string): boolean {
     return false;
   }
 }
+
+export interface PriestDurationInfo {
+  min: number;
+  max: number;
+  hasVariation: boolean;
+  defaultMinutes: number;
+}
+
+/**
+ * Computes the minimum and maximum slot durations across a priest's weekly schedule & overrides
+ */
+export function getPriestDurationInfo(profile?: PriestProfile): PriestDurationInfo {
+  const defaultMinutes = profile?.avg_confession_minutes || 15;
+  if (!profile || !profile.weekly_schedule || profile.weekly_schedule.length === 0) {
+    return { min: defaultMinutes, max: defaultMinutes, hasVariation: false, defaultMinutes };
+  }
+
+  const durations: number[] = [];
+  for (const item of profile.weekly_schedule) {
+    durations.push(item.avg_confession_minutes || defaultMinutes);
+  }
+
+  if (profile.schedule_overrides) {
+    for (const ovr of profile.schedule_overrides) {
+      if (!ovr.isUnavailable && ovr.avg_confession_minutes) {
+        durations.push(ovr.avg_confession_minutes);
+      }
+    }
+  }
+
+  if (durations.length === 0) {
+    durations.push(defaultMinutes);
+  }
+
+  const min = Math.min(...durations);
+  const max = Math.max(...durations);
+  const hasVariation = min !== max;
+
+  return { min, max, hasVariation, defaultMinutes };
+}
+
+/**
+ * Formats duration information cleanly for display across cards and summaries
+ */
+export function formatPriestDurationRange(
+  info: PriestDurationInfo,
+  language: string,
+  tMinutes: string = 'min'
+): string {
+  if (info.hasVariation) {
+    return language === 'ar'
+      ? `${info.min} - ${info.max} دقيقة (حسب اليوم)`
+      : `${info.min} - ${info.max} ${tMinutes} (varies by day)`;
+  }
+  return language === 'ar'
+    ? `متوسط ${info.min} دقيقة`
+    : `${info.min} ${tMinutes} avg`;
+}
+
