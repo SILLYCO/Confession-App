@@ -178,30 +178,85 @@ const addDeletedUserId = (id: string) => {
   } catch {}
 };
 
-const INITIAL_MOCK_ANNOUNCEMENTS: ParishAnnouncement[] = [
-  {
-    id: 'ann_1',
-    title_ar: 'مواعيد سر الاعتراف خلال فترة الصوم المقدس والأعياد',
-    title_en: 'Sacrament of Holy Confession Schedule During Holy Feasts & Fasts',
-    content_ar: 'تعلن الكنيسة لشعبها المبارك بضرورة الالتزام بحجز مواعيد الاعتراف مسبقاً عبر المنظومة. نرجو الحضور قبل الموعد بـ 10 دقائق حرصاً على راحة الجميع.',
-    content_en: 'The Church invites all congregation members to reserve their confession appointments in advance through the online portal. Please arrive 10 minutes before your slot.',
-    priority: 'important',
-    target_audience: 'all',
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'ann_2',
-    title_ar: 'تنبيه خاص بمواعيد القداسات والخدمة الأسبوعية',
-    title_en: 'Notice Regarding Weekly Liturgy & Pastoral Services',
-    content_ar: 'القداس الإلهي يبدأ أيام الأحد والأربعاء والجمعة. مواعيد اعترافات الآباء الكهنة متاحة بالجدول الأسبوعي بعد القداس مباشرة.',
-    content_en: 'Holy Liturgy is served Sundays, Wednesdays, and Fridays. Confession appointments with Church Fathers follow immediately as scheduled.',
-    priority: 'normal',
-    target_audience: 'all',
-    is_active: true,
-    created_at: new Date().toISOString(),
-  },
-];
+// Blocklist constants to purge dummy congregation accounts and test announcements
+export const DUMMY_ACCOUNT_EMAILS = new Set(['peter@example.com', 'mary@example.com', 'david@example.com']);
+export const DUMMY_ACCOUNT_IDS = new Set([
+  '44444444-4444-4444-4444-444444444444',
+  '55555555-5555-5555-5555-555555555555',
+  '66666666-6666-6666-6666-666666666666',
+]);
+export const DUMMY_BOOKING_IDS = new Set(['book-001', 'book-002', 'book-003', 'book-004', 'book-005']);
+export const DUMMY_ANNOUNCEMENT_IDS = new Set(['ann_1', 'ann_2']);
+
+// Self-healing sanitizer for existing client localStorage
+const sanitizeStoredData = () => {
+  try {
+    // 1. Sanitize users
+    const savedUsers = localStorage.getItem(LOCAL_STORAGE_KEY_USERS);
+    if (savedUsers) {
+      const parsed = JSON.parse(savedUsers);
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed.filter((u: any) => 
+          !DUMMY_ACCOUNT_IDS.has(u.id) && 
+          !DUMMY_ACCOUNT_EMAILS.has(u.email?.toLowerCase())
+        );
+        localStorage.setItem(LOCAL_STORAGE_KEY_USERS, JSON.stringify(cleaned));
+      }
+    }
+
+    // 2. Sanitize current user
+    const savedUser = localStorage.getItem(LOCAL_STORAGE_KEY_CURRENT_USER);
+    if (savedUser) {
+      const parsed = JSON.parse(savedUser);
+      if (DUMMY_ACCOUNT_IDS.has(parsed.id) || DUMMY_ACCOUNT_EMAILS.has(parsed.email?.toLowerCase())) {
+        localStorage.removeItem(LOCAL_STORAGE_KEY_CURRENT_USER);
+      }
+    }
+
+    // 3. Sanitize bookings
+    const savedBookings = localStorage.getItem(LOCAL_STORAGE_KEY_BOOKINGS);
+    if (savedBookings) {
+      const parsed = JSON.parse(savedBookings);
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed.filter((b: any) => 
+          !DUMMY_ACCOUNT_IDS.has(b.user_id) && 
+          !DUMMY_BOOKING_IDS.has(b.id)
+        );
+        localStorage.setItem(LOCAL_STORAGE_KEY_BOOKINGS, JSON.stringify(cleaned));
+      }
+    }
+
+    // 4. Sanitize notifications
+    const savedNotifs = localStorage.getItem(LOCAL_STORAGE_KEY_NOTIFS);
+    if (savedNotifs) {
+      const parsed = JSON.parse(savedNotifs);
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed.filter((n: any) => 
+          !DUMMY_ACCOUNT_IDS.has(n.user_id) && 
+          !DUMMY_ACCOUNT_EMAILS.has(n.recipient_email?.toLowerCase()) && 
+          n.id !== 'notif-001'
+        );
+        localStorage.setItem(LOCAL_STORAGE_KEY_NOTIFS, JSON.stringify(cleaned));
+      }
+    }
+
+    // 5. Sanitize announcements (remove test ann_1 and ann_2)
+    const savedAnnouncements = localStorage.getItem(LOCAL_STORAGE_KEY_ANNOUNCEMENTS);
+    if (savedAnnouncements) {
+      const parsed = JSON.parse(savedAnnouncements);
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed.filter((a: any) => !DUMMY_ANNOUNCEMENT_IDS.has(a.id));
+        localStorage.setItem(LOCAL_STORAGE_KEY_ANNOUNCEMENTS, JSON.stringify(cleaned));
+      }
+    }
+  } catch (e) {
+    console.warn('LocalStorage sanitizer error:', e);
+  }
+};
+// Run immediately on file load
+sanitizeStoredData();
+
+const INITIAL_MOCK_ANNOUNCEMENTS: ParishAnnouncement[] = [];
 
 export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Initialize state from local storage or mock data
@@ -212,9 +267,14 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          // Filter out explicitly deleted users and sanitize
+          // Filter out explicitly deleted users and dummy accounts
           const cleaned = parsed
-            .filter((u: User) => !deletedIds.includes(u.id) && !deletedIds.includes(u.email))
+            .filter((u: User) => 
+              !deletedIds.includes(u.id) && 
+              !deletedIds.includes(u.email) &&
+              !DUMMY_ACCOUNT_IDS.has(u.id) &&
+              !DUMMY_ACCOUNT_EMAILS.has(u.email?.toLowerCase())
+            )
             .map((u: User) => {
               const defaultMock = MOCK_USERS.find(m => m.id === u.id || m.email === u.email);
               if (!defaultMock) return u;
@@ -236,7 +296,12 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       } catch {}
     }
-    return MOCK_USERS.filter(u => !deletedIds.includes(u.id) && !deletedIds.includes(u.email));
+    return MOCK_USERS.filter(u => 
+      !deletedIds.includes(u.id) && 
+      !deletedIds.includes(u.email) &&
+      !DUMMY_ACCOUNT_IDS.has(u.id) &&
+      !DUMMY_ACCOUNT_EMAILS.has(u.email?.toLowerCase())
+    );
   });
 
   const [currentUser, setCurrentUserState] = useState<User | null>(() => {
@@ -244,6 +309,9 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (saved) {
       try { 
         const parsed = JSON.parse(saved);
+        if (DUMMY_ACCOUNT_IDS.has(parsed.id) || DUMMY_ACCOUNT_EMAILS.has(parsed.email?.toLowerCase())) {
+          return null;
+        }
         const defaultMock = MOCK_USERS.find(m => m.id === parsed.id || m.email === parsed.email);
         return defaultMock ? { ...defaultMock, ...parsed } : parsed;
       } catch {}
@@ -276,27 +344,45 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const hasCompleted = parsed.some((b: Booking) => b.status === 'completed');
-          if (!hasCompleted) {
-            const missing = INITIAL_MOCK_BOOKINGS.filter((m: Booking) => !parsed.some((b: Booking) => b.id === m.id));
-            return [...parsed, ...missing];
-          }
-          return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.filter((b: Booking) => 
+            !DUMMY_ACCOUNT_IDS.has(b.user_id) && 
+            !DUMMY_BOOKING_IDS.has(b.id)
+          );
         }
       } catch {}
     }
-    return INITIAL_MOCK_BOOKINGS;
+    return [];
   });
 
   const [notificationLogs, setNotificationLogs] = useState<NotificationLog[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_NOTIFS);
-    return saved ? JSON.parse(saved) : INITIAL_MOCK_NOTIFICATIONS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((n: NotificationLog) => 
+            !DUMMY_ACCOUNT_IDS.has(n.user_id) && 
+            !DUMMY_ACCOUNT_EMAILS.has(n.recipient_email?.toLowerCase()) && 
+            n.id !== 'notif-001'
+          );
+        }
+      } catch {}
+    }
+    return [];
   });
 
   const [announcements, setAnnouncements] = useState<ParishAnnouncement[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY_ANNOUNCEMENTS);
-    return saved ? JSON.parse(saved) : INITIAL_MOCK_ANNOUNCEMENTS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((a: ParishAnnouncement) => !DUMMY_ANNOUNCEMENT_IDS.has(a.id));
+        }
+      } catch {}
+    }
+    return [];
   });
 
   // Sync to localStorage
@@ -375,11 +461,13 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         { data: profilesData },
         { data: bookingsData },
         { data: notifsData },
+        { data: announcementsData },
       ] = await Promise.all([
         client.from('users').select('*'),
         client.from('priest_profiles').select('*'),
         client.from('bookings').select('*'),
         client.from('notification_logs').select('*').order('sent_at', { ascending: false }),
+        client.from('parish_announcements').select('*').order('created_at', { ascending: false }),
       ]);
 
       if (usersData && usersData.length > 0) {
@@ -387,13 +475,23 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setAllUsers(prev => {
           const updatedMap = new Map<string, User>();
           for (const u of usersData) {
-            if (!deletedIds.includes(u.id) && !deletedIds.includes(u.email)) {
+            if (
+              !deletedIds.includes(u.id) && 
+              !deletedIds.includes(u.email) &&
+              !DUMMY_ACCOUNT_IDS.has(u.id) &&
+              !DUMMY_ACCOUNT_EMAILS.has(u.email?.toLowerCase())
+            ) {
               updatedMap.set(u.id, u);
             }
           }
           // Preserve local updates if local updated_at is newer or equals
           for (const localU of prev) {
-            if (deletedIds.includes(localU.id) || deletedIds.includes(localU.email)) continue;
+            if (
+              deletedIds.includes(localU.id) || 
+              deletedIds.includes(localU.email) ||
+              DUMMY_ACCOUNT_IDS.has(localU.id) ||
+              DUMMY_ACCOUNT_EMAILS.has(localU.email?.toLowerCase())
+            ) continue;
             const remoteU = updatedMap.get(localU.id);
             if (!remoteU) {
               updatedMap.set(localU.id, localU);
@@ -402,7 +500,12 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             }
           }
 
-          const result = Array.from(updatedMap.values()).filter(u => !deletedIds.includes(u.id) && !deletedIds.includes(u.email));
+          const result = Array.from(updatedMap.values()).filter(u => 
+            !deletedIds.includes(u.id) && 
+            !deletedIds.includes(u.email) &&
+            !DUMMY_ACCOUNT_IDS.has(u.id) &&
+            !DUMMY_ACCOUNT_EMAILS.has(u.email?.toLowerCase())
+          );
           try {
             localStorage.setItem(LOCAL_STORAGE_KEY_USERS, JSON.stringify(result));
           } catch {}
@@ -413,10 +516,32 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setPriestProfiles(profilesData);
       }
       if (bookingsData) {
-        setBookings(bookingsData);
+        const cleanBookings = bookingsData.filter((b: Booking) => 
+          !DUMMY_ACCOUNT_IDS.has(b.user_id) && 
+          !DUMMY_BOOKING_IDS.has(b.id)
+        );
+        setBookings(cleanBookings);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY_BOOKINGS, JSON.stringify(cleanBookings));
+        } catch {}
       }
       if (notifsData) {
-        setNotificationLogs(notifsData);
+        const cleanNotifs = notifsData.filter((n: NotificationLog) => 
+          !DUMMY_ACCOUNT_IDS.has(n.user_id) && 
+          !DUMMY_ACCOUNT_EMAILS.has(n.recipient_email?.toLowerCase()) &&
+          n.id !== 'notif-001'
+        );
+        setNotificationLogs(cleanNotifs);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY_NOTIFS, JSON.stringify(cleanNotifs));
+        } catch {}
+      }
+      if (announcementsData) {
+        const cleanAnnouncements = announcementsData.filter((a: ParishAnnouncement) => !DUMMY_ANNOUNCEMENT_IDS.has(a.id));
+        setAnnouncements(cleanAnnouncements);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY_ANNOUNCEMENTS, JSON.stringify(cleanAnnouncements));
+        } catch {}
       }
     } catch (e) {
       console.warn('Failed to sync from Supabase:', e);
@@ -1994,13 +2119,23 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         created_at: new Date().toISOString(),
       };
 
-      setAnnouncements(prev => [newAnn, ...prev]);
+      setAnnouncements(prev => {
+        const updated = [newAnn, ...prev];
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY_ANNOUNCEMENTS, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
 
       if (supabase && isSupabaseConfigured) {
-        supabase
-          .from('parish_announcements')
-          .insert([newAnn])
-          .then(() => {}, () => {});
+        try {
+          const { error } = await supabase
+            .from('parish_announcements')
+            .insert([newAnn]);
+          if (error) console.warn('Supabase insert announcement error:', error);
+        } catch (e) {
+          console.warn('Supabase insert announcement exception:', e);
+        }
       }
 
       return { success: true, announcement: newAnn };
@@ -2011,14 +2146,24 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const updateAnnouncement = useCallback(async (id: string, updates: Partial<ParishAnnouncement>) => {
     try {
-      setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+      setAnnouncements(prev => {
+        const updated = prev.map(a => a.id === id ? { ...a, ...updates } : a);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY_ANNOUNCEMENTS, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
 
       if (supabase && isSupabaseConfigured) {
-        supabase
-          .from('parish_announcements')
-          .update(updates)
-          .eq('id', id)
-          .then(() => {}, () => {});
+        try {
+          const { error } = await supabase
+            .from('parish_announcements')
+            .update({ ...updates, updated_at: new Date().toISOString() })
+            .eq('id', id);
+          if (error) console.warn('Supabase update announcement error:', error);
+        } catch (e) {
+          console.warn('Supabase update announcement exception:', e);
+        }
       }
 
       return { success: true };
@@ -2029,14 +2174,24 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const deleteAnnouncement = useCallback(async (id: string) => {
     try {
-      setAnnouncements(prev => prev.filter(a => a.id !== id));
+      setAnnouncements(prev => {
+        const updated = prev.filter(a => a.id !== id);
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY_ANNOUNCEMENTS, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
 
       if (supabase && isSupabaseConfigured) {
-        supabase
-          .from('parish_announcements')
-          .delete()
-          .eq('id', id)
-          .then(() => {}, () => {});
+        try {
+          const { error } = await supabase
+            .from('parish_announcements')
+            .delete()
+            .eq('id', id);
+          if (error) console.warn('Supabase delete announcement error:', error);
+        } catch (e) {
+          console.warn('Supabase delete announcement exception:', e);
+        }
       }
 
       return { success: true };
@@ -2048,20 +2203,30 @@ export const AppStoreProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const toggleAnnouncementActive = useCallback(async (id: string) => {
     try {
       let nextState = false;
-      setAnnouncements(prev => prev.map(a => {
-        if (a.id === id) {
-          nextState = !a.is_active;
-          return { ...a, is_active: nextState };
-        }
-        return a;
-      }));
+      setAnnouncements(prev => {
+        const updated = prev.map(a => {
+          if (a.id === id) {
+            nextState = !a.is_active;
+            return { ...a, is_active: nextState };
+          }
+          return a;
+        });
+        try {
+          localStorage.setItem(LOCAL_STORAGE_KEY_ANNOUNCEMENTS, JSON.stringify(updated));
+        } catch {}
+        return updated;
+      });
 
       if (supabase && isSupabaseConfigured) {
-        supabase
-          .from('parish_announcements')
-          .update({ is_active: nextState })
-          .eq('id', id)
-          .then(() => {}, () => {});
+        try {
+          const { error } = await supabase
+            .from('parish_announcements')
+            .update({ is_active: nextState, updated_at: new Date().toISOString() })
+            .eq('id', id);
+          if (error) console.warn('Supabase toggle announcement error:', error);
+        } catch (e) {
+          console.warn('Supabase toggle announcement exception:', e);
+        }
       }
 
       return { success: true };

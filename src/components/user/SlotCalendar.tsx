@@ -17,9 +17,10 @@ import {
 interface SlotCalendarProps {
   priest: User;
   onBookingComplete?: () => void;
+  onDayDurationChange?: (duration: number) => void;
 }
 
-export const SlotCalendar: React.FC<SlotCalendarProps> = ({ priest, onBookingComplete }) => {
+export const SlotCalendar: React.FC<SlotCalendarProps> = ({ priest, onBookingComplete, onDayDurationChange }) => {
   const { t, language, formatDate, formatTime, getDayName } = useTranslation();
   const { 
     currentUser, 
@@ -99,6 +100,10 @@ export const SlotCalendar: React.FC<SlotCalendarProps> = ({ priest, onBookingCom
     return override?.avg_confession_minutes || matchingSchedule?.avg_confession_minutes || profile?.avg_confession_minutes || 15;
   }, [daySlots, selectedDate, selectedDateStr, profile]);
 
+  useEffect(() => {
+    onDayDurationChange?.(selectedDayDuration);
+  }, [selectedDayDuration, onDayDurationChange]);
+
   // Helper to check if a slot is booked by current user
   const isSlotBookedByMe = (slot: Slot) => {
     if (!currentUser) return false;
@@ -134,7 +139,7 @@ export const SlotCalendar: React.FC<SlotCalendarProps> = ({ priest, onBookingCom
               {language === 'ar' ? (priest.title_ar || priest.name) : (priest.title_en || priest.name)}
             </h3>
             <span className="text-xs bg-gold-100 text-church-900 px-2.5 py-0.5 rounded-full font-bold border border-gold-300">
-              ⏱ {profile?.avg_confession_minutes || 15} {t.common.minutes}
+              ⏱ {language === 'ar' ? `مدة الموعد لهذا اليوم: ${selectedDayDuration} دقيقة` : `Slot duration today: ${selectedDayDuration} mins`}
             </span>
           </div>
           <p className="text-xs text-stone-500 mt-1">

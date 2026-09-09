@@ -3,6 +3,7 @@ import { useTranslation } from '../../lib/i18n';
 import { useAppStore } from '../../lib/store';
 import { User, DEFAULT_SKELETON_AVATAR } from '../../types/database';
 import { Clock, Calendar, Church, ArrowRight } from 'lucide-react';
+import { getPriestDurationInfo, formatPriestDurationRange } from '../../lib/slotGenerator';
 
 interface PriestSelectorProps {
   onSelectPriest: (priest: User) => void;
@@ -35,6 +36,7 @@ export const PriestSelector: React.FC<PriestSelectorProps> = ({ onSelectPriest }
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
         {priests.map((priest) => {
           const profile = priestProfiles.find((p) => p.priest_id === priest.id);
+          const durationInfo = getPriestDurationInfo(profile);
           const slots = getPriestSlots(priest.id, new Date(), 14);
           const availableSlotsCount = slots.filter((s) => s.status === 'available').length;
 
@@ -78,7 +80,7 @@ export const PriestSelector: React.FC<PriestSelectorProps> = ({ onSelectPriest }
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                   <span className="inline-flex items-center gap-1 text-xs font-semibold bg-gold-100 text-church-900 px-3 py-1 rounded-full border border-gold-300">
                     <Clock className="w-3.5 h-3.5 text-church-700" />
-                    <span>{language === 'ar' ? `متوسط ${profile?.avg_confession_minutes || 15} دقيقة` : `${profile?.avg_confession_minutes || 15} ${t.common.minutes} avg`}</span>
+                    <span>{formatPriestDurationRange(durationInfo, language, t.common.minutes)}</span>
                   </span>
 
                   <span className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-800 px-3 py-1 rounded-full border border-emerald-200">

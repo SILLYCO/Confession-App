@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { useAppStore } from '../../lib/store';
 import { User, DEFAULT_SKELETON_AVATAR } from '../../types/database';
 import { SlotCalendar } from './SlotCalendar';
 import { ArrowLeft, Clock, Church, Calendar } from 'lucide-react';
+import { getPriestDurationInfo, formatPriestDurationRange } from '../../lib/slotGenerator';
 
 interface PriestAppointmentsPageProps {
   priest: User;
@@ -20,8 +21,10 @@ export const PriestAppointmentsPage: React.FC<PriestAppointmentsPageProps> = ({
 }) => {
   const { t, language } = useTranslation();
   const { priestProfiles, getPriestSlots } = useAppStore();
+  const [activeDayDuration, setActiveDayDuration] = useState<number | null>(null);
 
   const profile = priestProfiles.find((p) => p.priest_id === priest.id);
+  const durationInfo = getPriestDurationInfo(profile);
   const slots = getPriestSlots(priest.id, new Date(), 14);
   const availableSlotsCount = slots.filter((s) => s.status === 'available').length;
 
@@ -89,7 +92,11 @@ export const PriestAppointmentsPage: React.FC<PriestAppointmentsPageProps> = ({
           <div className="flex flex-row sm:flex-col items-center justify-center sm:items-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-stone-800">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gold-500 text-navy-950 text-xs font-bold shadow">
               <Clock className="w-4 h-4" />
-              <span>{language === 'ar' ? `متوسط ${profile?.avg_confession_minutes || 15} دقيقة` : `${profile?.avg_confession_minutes || 15} ${t.common.minutes} avg`}</span>
+              <span>
+                {activeDayDuration 
+                  ? (language === 'ar' ? `مدة الموعد: ${activeDayDuration} دقيقة` : `Slot duration: ${activeDayDuration} mins`)
+                  : formatPriestDurationRange(durationInfo, language, t.common.minutes)}
+              </span>
             </span>
 
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 text-xs font-bold">
@@ -106,6 +113,7 @@ export const PriestAppointmentsPage: React.FC<PriestAppointmentsPageProps> = ({
         <SlotCalendar
           priest={priest}
           onBookingComplete={onBookingComplete}
+          onDayDurationChange={setActiveDayDuration}
         />
       </div>
 
