@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from '../../lib/i18n';
-import { useAppStore } from '../../lib/store';
-import { MOCK_USERS } from '../../lib/mockData';
+import { useAppStore, DUMMY_ACCOUNT_IDS } from '../../lib/store';
 import { LanguageSwitcher } from '../layout/LanguageSwitcher';
 import { MaritalStatus, ChurchServiceRole, Gender, DEFAULT_SKELETON_AVATAR } from '../../types/database';
 import { 
@@ -26,7 +25,8 @@ import {
   Users,
   Award,
   Briefcase,
-  GraduationCap
+  GraduationCap,
+  Loader2
 } from 'lucide-react';
 
 const SERVED_STAGE_PRESETS_AR = [
@@ -103,12 +103,11 @@ export const LoginPage: React.FC = () => {
   const [signUpOtherServices, setSignUpOtherServices] = useState('');
   
   const availablePriests = useMemo(() => {
-    if (priests && priests.length > 0) return priests;
-    return MOCK_USERS.filter(u => u.role === 'priest');
+    return (priests || []).filter(u => !DUMMY_ACCOUNT_IDS.has(u.id));
   }, [priests]);
 
   const [signUpConfessionFatherId, setSignUpConfessionFatherId] = useState<string>(
-    () => priests[0]?.id || MOCK_USERS.find(u => u.role === 'priest')?.id || ''
+    () => priests.find(p => !DUMMY_ACCOUNT_IDS.has(p.id))?.id || ''
   );
   const [signUpPassword, setSignUpPassword] = useState('');
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState('');
@@ -835,12 +834,20 @@ export const LoginPage: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {availablePriests.map((priest) => {
-                    const isSelected = signUpConfessionFatherId === priest.id;
-                    const profile = priestProfiles?.find(p => p.priest_id === priest.id);
-                    const churchTitle = language === 'ar' 
-                      ? (profile?.church_name_ar || t.churchName) 
-                      : (profile?.church_name_en || t.churchName);
+                  {availablePriests.length === 0 ? (
+                    <div className="col-span-full py-8 text-center bg-stone-50 border border-dashed border-stone-300 rounded-3xl p-6">
+                      <Loader2 className="w-6 h-6 animate-spin text-gold-500 mx-auto mb-2" />
+                      <p className="text-xs font-semibold text-stone-600">
+                        {language === 'ar' ? 'جاري تحميل الآباء الكهنة من النظام...' : 'Loading fathers of confession...'}
+                      </p>
+                    </div>
+                  ) : (
+                    availablePriests.map((priest) => {
+                      const isSelected = signUpConfessionFatherId === priest.id;
+                      const profile = priestProfiles?.find(p => p.priest_id === priest.id);
+                      const churchTitle = language === 'ar' 
+                        ? (profile?.church_name_ar || t.churchName) 
+                        : (profile?.church_name_en || t.churchName);
 
                     return (
                       <button
@@ -895,7 +902,7 @@ export const LoginPage: React.FC = () => {
                         </div>
                       </button>
                     );
-                  })}
+                  }))}
                 </div>
 
                 <div className="text-[11px] text-amber-900 bg-amber-50/90 p-2.5 rounded-xl border border-amber-200 leading-relaxed flex items-start gap-1.5">
